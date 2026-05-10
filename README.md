@@ -5,6 +5,14 @@ Canvas-based vertical space shooter prototype.
 Play here:
 [https://dreamer-dy-yun.github.io/galaxy-runner-canvas/](https://dreamer-dy-yun.github.io/galaxy-runner-canvas/)
 
+## Project info
+
+- Requested and directed by: Yoon Dae Young
+- Built with: Codex / GPT-5.5 coding agent collaboration
+- Development date: May 2026
+- Purpose: vibe-coding test and playable canvas shooter prototype
+- Repository: public GitHub Pages experiment
+
 ## Features
 
 - Four weapon ships: Rapid, Energy, Spread, Nova
