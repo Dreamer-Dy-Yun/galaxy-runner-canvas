@@ -1,0 +1,82 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Galaxy Runner</title>
+    <link rel="stylesheet" href="galaxy-runner.css" />
+    <script defer src="src/core/constants.js"></script>
+    <script defer src="src/gameplay/weapon-catalog.js"></script>
+    <script defer src="src/gameplay/item-definitions.js"></script>
+    <script defer src="src/gameplay/game-config.js"></script>
+    <script defer src="src/gameplay/game-info.js"></script>
+    <script defer src="src/core/asset-loader.js"></script>
+    <script defer src="src/core/sprite-atlas.js"></script>
+    <script defer src="src/core/collision.js"></script>
+    <script defer src="src/systems/weapon-system.js"></script>
+    <script defer src="src/systems/drone-system.js"></script>
+    <script defer src="src/systems/special-system.js"></script>
+    <script defer src="src/systems/boss-ai.js"></script>
+    <script defer src="src/renderers/player-renderer.js"></script>
+    <script defer src="src/renderers/player-part-layout.js"></script>
+    <script defer src="src/renderers/final-ship-art.js"></script>
+    <script defer src="src/ui/final-ship-startup-picker.js"></script>
+    <script defer src="src/renderers/item-icon-renderer.js"></script>
+    <script defer src="src/engine/input.js"></script>
+    <script defer src="src/renderers/space-background.js"></script>
+    <script defer src="src/entities/burst-particle.js"></script>
+    <script defer src="src/entities/projectile.js"></script>
+    <script defer src="src/entities/nova-explosion.js"></script>
+    <script defer src="src/entities/enemy.js"></script>
+    <script defer src="src/entities/collectible-item.js"></script>
+    <script defer src="src/entities/player.js"></script>
+    <script defer src="src/ui/game-hud.js"></script>
+    <script defer src="src/engine/game.js"></script>
+    <script defer src="src/main.js"></script>
+  </head>
+  <body>
+    <main class="app">
+      <div class="topbar">
+        <div>
+          <h1>Galaxy Runner</h1>
+          <p class="hint">Arrow/WASD Move - Space Fire - Ctrl Special - P/Esc Pause - R Restart</p>
+        </div>
+        <button id="restart" type="button">Restart</button>
+      </div>
+      <section id="startup-final-picker" class="startup-picker" aria-label="final ship startup selection" hidden>
+        <h2>DEV START SELECTION</h2>
+        <label class="startup-picker__field">
+          Start weapon
+          <select id="startup-start-weapon">
+            <option value="none">Base ship</option>
+            <option value="rapid">Rapid</option>
+            <option value="energy">Energy</option>
+            <option value="spread">Spread</option>
+            <option value="nova">Nova</option>
+          </select>
+        </label>
+        <div class="startup-picker__grid">
+          <label class="startup-picker__field">
+            Rapid Final 01~10
+            <select id="startup-rapid-level"></select>
+          </label>
+          <label class="startup-picker__field">
+            Energy Final 01~10
+            <select id="startup-energy-level"></select>
+          </label>
+          <label class="startup-picker__field">
+            Spread Final 01~10
+            <select id="startup-spread-level"></select>
+          </label>
+          <label class="startup-picker__field">
+            Nova Final 01~10
+            <select id="startup-nova-level"></select>
+          </label>
+        </div>
+      </section>
+      <div class="stage">
+        <canvas id="game" width="960" height="540"></canvas>
+      </div>
+    </main>
+  </body>
+</html>
