@@ -7,7 +7,7 @@ Play here:
 
 ## Project info
 
-- Requested and directed by: Yoon Dae Young
+- Requested and directed by: YUN DAEYOUNG
 - Built with: Codex / GPT-5.5 coding agent collaboration
 - Development date: May 2026
 - Purpose: vibe-coding test and playable canvas shooter prototype
