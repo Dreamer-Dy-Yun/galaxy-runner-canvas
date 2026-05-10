@@ -316,6 +316,7 @@ WeaponCatalog.DEFINITIONS = Object.freeze({
     },
     footprint: {
       visualScale: (level) => Math.min(1.28, 1 + Math.min(10, level) * 0.028),
+      hitboxScale: (level) => Math.min(1.28, 1 + Math.min(10, level) * 0.028),
     },
   }),
   nova: new WeaponDefinition({

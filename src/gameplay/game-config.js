@@ -293,8 +293,8 @@ const ITEM_ICON_CONFIG = Object.freeze({
 const ITEM_FIELD_CONFIG = Object.freeze({
   spawn: Object.freeze({
     xPadding: 70,
-    yMin: 72,
-    yMax: 132,
+    yMin: -52,
+    yMax: -28,
   }),
   velocity: Object.freeze({
     xMin: -110,

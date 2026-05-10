@@ -128,7 +128,7 @@ Date: 2026-05-10
 ## Field item behavior
 
 - Field item movement tuning is owned by `ITEM_FIELD_CONFIG` in `src/gameplay/game-config.js`.
-- Items spawn inside the playfield instead of immediately falling through from off-screen.
+- Items enter from above the playfield, then bounce within the playfield.
 - Items bounce off playfield edges until their lifetime expires.
 - Items blink near the end of their lifetime.
 - Blink speed increases as the remaining lifetime approaches zero.
@@ -279,6 +279,12 @@ Date: 2026-05-10
 - Rapid hitbox width and height are also 70% of the base ship hitbox.
 - Rapid art and hitbox use the same scale ratio.
 - Because both width and height are 70%, the final hitbox area is 49% of the base ship hitbox area.
+
+## Spread ship footprint
+
+- Spread grows larger as weapon level rises.
+- Spread hitbox grows with the same scale as its ship art.
+- Spread art and hitbox use the same scale ratio so larger visuals also mean larger collision risk.
 
 ## Projectile performance contract
 

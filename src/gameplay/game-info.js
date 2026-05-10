@@ -36,6 +36,12 @@ const GAME_INFO_CONFIG = Object.freeze({
     gap: 12,
     previewY: 78,
     previewSize: 82,
+    previewScaleByKind: Object.freeze({
+      rapid: 0.7,
+      energy: 1,
+      spread: 1.16,
+      nova: 1.06,
+    }),
     titleY: 24,
     tagStartY: 126,
     tagGap: 21,
@@ -72,7 +78,7 @@ const GAME_INFO = Object.freeze({
       kind: "rapid",
       name: "Rapid",
       color: "#ffe06a",
-      tags: Object.freeze(["속도++", "피격 80%", "추적 관통빔"]),
+      tags: Object.freeze(["속도++", "히트박스 70%", "추적 관통빔"]),
     }),
     Object.freeze({
       kind: "energy",

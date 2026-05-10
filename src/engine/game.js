@@ -696,9 +696,10 @@ class Game {
 
     this.ctx.save();
     this.ctx.translate(x + cards.width / 2, y + cards.previewY);
-    const drewShip = this.player.finalShips.draw(this.ctx, ship.kind, WeaponCatalog.maxLevel(ship.kind), cards.previewSize);
+    const previewScale = cards.previewScaleByKind[ship.kind] ?? 1;
+    const drewShip = this.player.finalShips.draw(this.ctx, ship.kind, WeaponCatalog.maxLevel(ship.kind), cards.previewSize * previewScale);
     if (!drewShip) {
-      ItemIconRenderer.draw(this.ctx, ship.kind, 0, 0, ship.color, { size: cards.previewSize * 0.5 });
+      ItemIconRenderer.draw(this.ctx, ship.kind, 0, 0, ship.color, { size: cards.previewSize * previewScale * 0.5 });
     }
     this.ctx.restore();
 
