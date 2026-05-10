@@ -9,7 +9,7 @@ Play here:
 
 - Requested and directed by: YUN DAEYOUNG
 - Built with: Codex / GPT-5.5 coding agent collaboration
-- Development date: May 2026
+- Development period: 2026-05-09 to 2026-05-10
 - Purpose: vibe-coding test and playable canvas shooter prototype
 - Repository: public GitHub Pages experiment
 
