@@ -78,7 +78,7 @@ const GAME_INFO = Object.freeze({
       kind: "rapid",
       name: "Rapid",
       color: "#ffe06a",
-      tags: Object.freeze(["속도++", "히트박스 70%", "추적 관통빔"]),
+      tags: Object.freeze(["속도++", "피격 면적 49%", "추적 관통빔"]),
     }),
     Object.freeze({
       kind: "energy",

@@ -279,6 +279,7 @@ Date: 2026-05-10
 - Rapid hitbox width and height are also 70% of the base ship hitbox.
 - Rapid art and hitbox use the same scale ratio.
 - Because both width and height are 70%, the final hitbox area is 49% of the base ship hitbox area.
+- Player-facing help should describe Rapid as having 49% hitbox area, not simply a 70% hitbox.
 
 ## Spread ship footprint
 
