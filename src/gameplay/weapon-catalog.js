@@ -29,6 +29,11 @@ function normalizeWeaponNumber(value, fallback, context) {
   return fallback;
 }
 
+function normalizeWeaponNumberResolver(value, fallback, context) {
+  if (typeof value === "function") return value;
+  return normalizeWeaponNumber(value, fallback, context);
+}
+
 class WeaponDefinition {
   constructor({
     kind,
@@ -70,12 +75,12 @@ class WeaponDefinition {
         : (() => 1),
     });
     this.projectile = Object.freeze({
-      speed: normalizeWeaponNumber(projectile.speed, 0, `WeaponDefinition.projectile.speed:${safeKind}`),
-      radius: normalizeWeaponNumber(projectile.radius, 0, `WeaponDefinition.projectile.radius:${safeKind}`),
+      speed: normalizeWeaponNumberResolver(projectile.speed, 0, `WeaponDefinition.projectile.speed:${safeKind}`),
+      radius: normalizeWeaponNumberResolver(projectile.radius, 0, `WeaponDefinition.projectile.radius:${safeKind}`),
       damageMultiplier: normalizeWeaponNumber(projectile.damageMultiplier, 1, `WeaponDefinition.projectile.damageMultiplier:${safeKind}`),
-      blastRadius: normalizeWeaponNumber(projectile.blastRadius, 0, `WeaponDefinition.projectile.blastRadius:${safeKind}`),
-      blastDuration: normalizeWeaponNumber(projectile.blastDuration, 0, `WeaponDefinition.projectile.blastDuration:${safeKind}`),
-      absorbLevel: normalizeWeaponNumber(projectile.absorbLevel, 0, `WeaponDefinition.projectile.absorbLevel:${safeKind}`),
+      blastRadius: normalizeWeaponNumberResolver(projectile.blastRadius, 0, `WeaponDefinition.projectile.blastRadius:${safeKind}`),
+      blastDuration: normalizeWeaponNumberResolver(projectile.blastDuration, 0, `WeaponDefinition.projectile.blastDuration:${safeKind}`),
+      absorbLevel: normalizeWeaponNumberResolver(projectile.absorbLevel, 0, `WeaponDefinition.projectile.absorbLevel:${safeKind}`),
     });
     this.footprint = Object.freeze({
       visualScale: footprint.visualScale ?? 1,
