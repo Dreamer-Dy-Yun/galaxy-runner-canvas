@@ -2,14 +2,18 @@
 
 ## 역할
 
-`src/engine/assets`는 게임별 에셋 의미를 알지 않는 브라우저 에셋 로딩 helper를 둔다.
+- 이미지 등 런타임 에셋의 요청, 캐싱, 선로딩 보조 계약을 제공한다.
 
-## 파일 책임
+## 파일
 
-- `asset-loader.js`: 이미지 캐시, 단일 이미지 load, manifest preload, load/error 상태 조회를 제공한다.
+- `asset-loader.js`
+  - 이미지 객체를 생성하고 src 기준 캐시를 유지하는 기본 로더다.
+- `asset-preloader.js`
+  - 현재 활성화된 `AssetLoader`를 decode-aware preload 흐름으로 보강한다.
+  - `AssetLoader.image()` 호출 후 가능한 경우 `HTMLImageElement.decode()`를 예약한다.
+  - 여러 이미지를 idle batch로 분산 선로딩하는 `preloadImages()`를 제공한다.
 
 ## 경계
 
-- 이 폴더는 어떤 이미지가 필수인지, 실패 시 어떤 fallback을 쓸지 결정하지 않는다.
-- Galaxy Runner의 player final-form, 적, 아이템, HUD 에셋 선택 정책은 게임/렌더러 계층에 남긴다.
-- 기존 `src/core/asset-loader.js`는 호환 진입점이며 같은 전역 `AssetLoader` 계약을 유지한다.
+- 이 계층은 에셋을 어떻게 불러올지만 소유한다.
+- 어떤 에셋이 critical/deferred인지 판단하는 책임은 게임 또는 scene bootstrap 쪽에 둔다.

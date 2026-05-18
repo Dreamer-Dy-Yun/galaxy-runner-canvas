@@ -1,6 +1,34 @@
 // Galaxy Runner - weapon catalog
 // Owns weapon identity, progression caps, item metadata, ship footprint, and asset naming.
 
+const WEAPON_CATALOG_WARNINGS = new Set();
+
+function weaponCatalogWarn(code, message) {
+  if (WEAPON_CATALOG_WARNINGS.has(code)) return;
+  WEAPON_CATALOG_WARNINGS.add(code);
+  if (typeof console !== "undefined" && console.warn) {
+    console.warn(`[Gameplay Contract] ${message}`);
+  }
+}
+
+function normalizeWeaponString(value, fallback, context) {
+  if (typeof value === "string" && value.length > 0) return value;
+  if (typeof value === "string") return "";
+  if (value == null) {
+    if (context) weaponCatalogWarn(context, `Expected a string, got ${String(value)}.`);
+    return fallback;
+  }
+  weaponCatalogWarn(context, `Expected a string for "${context}", got ${typeof value}.`);
+  return fallback;
+}
+
+function normalizeWeaponNumber(value, fallback, context) {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed)) return parsed;
+  weaponCatalogWarn(context, `Invalid number for "${context}", used fallback ${fallback}.`);
+  return fallback;
+}
+
 class WeaponDefinition {
   constructor({
     kind,
@@ -16,47 +44,48 @@ class WeaponDefinition {
     movement = {},
     projectile = {},
     footprint = {},
-    visual = {},
     assets = {},
   }) {
-    this.kind = kind;
-    this.label = label;
-    this.row = row;
-    this.color = color;
-    this.weight = weight;
-    this.itemRadius = itemRadius;
-    this.icon = icon;
-    this.pickupBurst = pickupBurst;
-    this.maxLevel = maxLevel;
+    const safeKind = normalizeWeaponString(kind, "unknown", `WeaponDefinition.kind:${String(kind)}`);
+    const safeLabel = normalizeWeaponString(label, safeKind, `WeaponDefinition.label:${safeKind}`);
+    this.kind = safeKind;
+    this.label = safeLabel;
+    this.row = normalizeWeaponNumber(row, 0, `WeaponDefinition.row:${safeKind}`);
+    this.color = normalizeWeaponString(color, "#ffffff", `WeaponDefinition.color:${safeKind}`);
+    this.weight = normalizeWeaponNumber(weight, 0, `WeaponDefinition.weight:${safeKind}`);
+    this.itemRadius = normalizeWeaponNumber(itemRadius, 15, `WeaponDefinition.itemRadius:${safeKind}`);
+    this.icon = normalizeWeaponString(icon, safeKind, `WeaponDefinition.icon:${safeKind}`);
+    this.pickupBurst = normalizeWeaponNumber(pickupBurst, 14, `WeaponDefinition.pickupBurst:${safeKind}`);
+    this.maxLevel = Math.max(1, normalizeWeaponNumber(maxLevel, 10, `WeaponDefinition.maxLevel:${safeKind}`));
     this.core = Object.freeze({
-      maxLevel: core.maxLevel ?? 10,
-      damageBonusPerLevel: core.damageBonusPerLevel ?? 0.05,
+      maxLevel: Math.max(
+        0,
+        normalizeWeaponNumber(core.maxLevel, 10, `WeaponDefinition.core.maxLevel:${safeKind}`)
+      ),
+      damageBonusPerLevel: normalizeWeaponNumber(core.damageBonusPerLevel, 0.05, `WeaponDefinition.core.damageBonusPerLevel:${safeKind}`),
     });
     this.movement = Object.freeze({
-      speedMultiplier: movement.speedMultiplier ?? 1,
+      speedMultiplier: typeof movement.speedMultiplier === "function" || Number.isFinite(movement.speedMultiplier)
+        ? movement.speedMultiplier
+        : (() => 1),
     });
     this.projectile = Object.freeze({
-      speed: projectile.speed ?? 0,
-      radius: projectile.radius ?? 0,
-      damageMultiplier: projectile.damageMultiplier ?? 1,
-      blastRadius: projectile.blastRadius ?? 0,
-      blastDuration: projectile.blastDuration ?? 0,
-      absorbLevel: projectile.absorbLevel ?? 0,
+      speed: normalizeWeaponNumber(projectile.speed, 0, `WeaponDefinition.projectile.speed:${safeKind}`),
+      radius: normalizeWeaponNumber(projectile.radius, 0, `WeaponDefinition.projectile.radius:${safeKind}`),
+      damageMultiplier: normalizeWeaponNumber(projectile.damageMultiplier, 1, `WeaponDefinition.projectile.damageMultiplier:${safeKind}`),
+      blastRadius: normalizeWeaponNumber(projectile.blastRadius, 0, `WeaponDefinition.projectile.blastRadius:${safeKind}`),
+      blastDuration: normalizeWeaponNumber(projectile.blastDuration, 0, `WeaponDefinition.projectile.blastDuration:${safeKind}`),
+      absorbLevel: normalizeWeaponNumber(projectile.absorbLevel, 0, `WeaponDefinition.projectile.absorbLevel:${safeKind}`),
     });
     this.footprint = Object.freeze({
       visualScale: footprint.visualScale ?? 1,
       hitboxScale: footprint.hitboxScale ?? footprint.visualScale ?? 1,
       hitboxRelativeToVisual: footprint.hitboxRelativeToVisual ?? false,
     });
-    this.visual = Object.freeze({
-      layeredEvolution: visual.layeredEvolution ?? true,
-      evolutionLayerColumns: Object.freeze(visual.evolutionLayerColumns ?? [7]),
-      layerAlpha: visual.layerAlpha ?? 0.98,
-    });
     this.assets = Object.freeze({
-      finalFolder: assets.finalFolder ?? kind,
-      finalPrefix: assets.finalPrefix ?? kind,
-      itemIconSrc: assets.itemIconSrc ?? `assets/items/${kind}.svg`,
+      finalFolder: normalizeWeaponString(assets.finalFolder, safeKind, `WeaponDefinition.assets.finalFolder:${safeKind}`),
+      finalPrefix: normalizeWeaponString(assets.finalPrefix, safeKind, `WeaponDefinition.assets.finalPrefix:${safeKind}`),
+      itemIconSrc: normalizeWeaponString(assets.itemIconSrc, `assets/items/${safeKind}.svg`, `WeaponDefinition.assets.itemIconSrc:${safeKind}`),
     });
 
     Object.freeze(this);
@@ -137,7 +166,19 @@ class WeaponDefinition {
 
 class WeaponCatalog {
   static definition(kind) {
-    return WeaponCatalog.DEFINITIONS[kind] || null;
+    const safeKind = normalizeWeaponString(kind, "", `WeaponCatalog.definition:${String(kind)}`);
+    if (!safeKind) {
+      weaponCatalogWarn("WeaponCatalog.definition:invalid-kind", "WeaponCatalog.definition called with an empty kind.");
+      return null;
+    }
+
+    const definition = WeaponCatalog.DEFINITIONS[safeKind];
+    if (!definition) {
+      weaponCatalogWarn(`WeaponCatalog.definition.missing:${safeKind}`, `Unknown weapon kind "${safeKind}".`);
+      return null;
+    }
+
+    return definition;
   }
 
   static has(kind) {
@@ -145,7 +186,8 @@ class WeaponCatalog {
   }
 
   static kinds() {
-    return Object.keys(WeaponCatalog.DEFINITIONS);
+    const kinds = Object.keys(WeaponCatalog.DEFINITIONS || {});
+    return kinds.filter((kind) => typeof kind === "string" && kind.length > 0);
   }
 
   static defaultKind() {
@@ -153,7 +195,12 @@ class WeaponCatalog {
   }
 
   static defaultMaxLevel() {
-    return Math.max(...WeaponCatalog.kinds().map((kind) => WeaponCatalog.maxLevel(kind)));
+    const levels = WeaponCatalog.kinds().map((kind) => WeaponCatalog.maxLevel(kind)).filter((level) => Number.isFinite(level));
+    if (levels.length <= 0) {
+      weaponCatalogWarn("WeaponCatalog.defaultMaxLevel:empty", "No valid weapon definitions found; default max level fallback is 0.");
+      return 0;
+    }
+    return Math.max(...levels);
   }
 
   static maxLevel(kind) {
@@ -162,10 +209,6 @@ class WeaponCatalog {
 
   static normalizeLevel(kind, level) {
     return WeaponCatalog.definition(kind)?.normalizeLevel(level) ?? 0;
-  }
-
-  static normalizeStartupLevel(kind, level) {
-    return WeaponCatalog.definition(kind)?.normalizeStartupLevel(level) ?? 1;
   }
 
   static coreMaxLevel(kind) {
@@ -216,18 +259,6 @@ class WeaponCatalog {
     return WeaponCatalog.definition(kind)?.hitboxScale(level) ?? 1;
   }
 
-  static hasLayeredEvolution(kind) {
-    return !!WeaponCatalog.definition(kind)?.visual.layeredEvolution;
-  }
-
-  static evolutionLayerColumns(kind) {
-    return WeaponCatalog.definition(kind)?.visual.evolutionLayerColumns ?? [];
-  }
-
-  static layerAlpha(kind) {
-    return WeaponCatalog.definition(kind)?.visual.layerAlpha ?? 1;
-  }
-
   static itemDefinitions() {
     const definitions = {};
     for (const kind of WeaponCatalog.kinds()) {
@@ -258,6 +289,31 @@ class WeaponCatalog {
 
   static finalAssetPrefix(kind) {
     return WeaponCatalog.definition(kind)?.assets.finalPrefix ?? kind;
+  }
+}
+
+function validateWeaponCatalogDefinitions() {
+  const kinds = WeaponCatalog.kinds();
+  if (kinds.length <= 0) {
+    weaponCatalogWarn("WeaponCatalog.validate:empty", "WeaponCatalog has no entries.");
+    return;
+  }
+
+  for (const kind of kinds) {
+    const definition = WeaponCatalog.definition(kind);
+    if (!definition) {
+      weaponCatalogWarn(`WeaponCatalog.validate:missing:${kind}`, `Missing definition for "${kind}".`);
+      continue;
+    }
+    if (definition.maxLevel <= 0) {
+      weaponCatalogWarn(`WeaponCatalog.validate:maxLevel:${kind}`, `maxLevel for "${kind}" is invalid (${definition.maxLevel}).`);
+    }
+    if (definition.core.maxLevel <= 0) {
+      weaponCatalogWarn(`WeaponCatalog.validate:coreMax:${kind}`, `core.maxLevel for "${kind}" is invalid (${definition.core.maxLevel}).`);
+    }
+    if (!definition.itemRadius) {
+      weaponCatalogWarn(`WeaponCatalog.validate:itemRadius:${kind}`, `Item metadata for "${kind}" has no radius.`);
+    }
   }
 }
 
@@ -341,6 +397,16 @@ WeaponCatalog.DEFINITIONS = Object.freeze({
 
 const WEAPON_KINDS = Object.freeze(WeaponCatalog.kinds());
 
+if (WEAPON_KINDS.length <= 0) {
+  weaponCatalogWarn("WeaponCatalog.weaponKinds:empty", "Weapon catalog defines zero weapon kinds.");
+}
+
+validateWeaponCatalogDefinitions();
+
 function isWeaponKind(kind) {
+  if (typeof kind !== "string" || !kind.trim()) {
+    weaponCatalogWarn(`WeaponCatalog.isWeaponKind:invalid:${String(kind)}`, `isWeaponKind received non-string kind "${String(kind)}".`);
+    return false;
+  }
   return WeaponCatalog.has(kind);
 }

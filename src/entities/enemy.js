@@ -24,6 +24,10 @@ class Enemy {
     return Enemy.enemyAtlas;
   }
 
+  static warmupAssets() {
+    Enemy.atlas();
+  }
+
   static pickRole(danger = 0) {
     const advancedChance = clampNumber(
       (danger - ENEMY_CONFIG.picker.advancedStartDanger) * ENEMY_CONFIG.picker.advancedChanceStep,

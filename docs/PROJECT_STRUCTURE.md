@@ -1,65 +1,47 @@
-﻿# Galaxy Runner project structure
+# Project Structure
 
-Owner: Yoon Dae Young
-Codex partner: Codex GPT-5
-Current cleanup baseline: v5 player visual rig
+Galaxy Runner is a static Canvas shooter. The project is kept intentionally small: runtime code, runtime assets, docs, and the GitHub Pages workflow.
 
-## Runtime entry
+## Entry points
 
-- `galaxy-runner.html`: script loading order and DOM shell.
-- `galaxy-runner.css`: page, HUD, canvas layout.
-- `src/main.js`: creates and starts the game.
+- `galaxy-runner.html`: loads the game canvas and runtime scripts.
+- `galaxy-runner.css`: page and canvas presentation.
+- `.github/workflows/pages.yml`: publishes the static game to GitHub Pages.
 
-## Source boundaries
+## Runtime source
 
-- `src/core`: small shared primitives such as constants, asset loading, sprite atlases, collision helpers.
-- `src/gameplay`: gameplay definitions, catalogs, and named runtime configuration.
-- `src/engine`: game loop, input, pause/restart orchestration.
-- `src/entities`: gameplay objects with state and behavior, such as player, enemies, projectiles, items, particles.
-- `src/systems`: rules and formulas that should not live inside entities, such as weapons, special skills, and drones.
-- `src/renderers`: canvas drawing helpers and visual layout code.
-- `src/ui`: HUD, dev start selector, and on-screen overlay logic.
+- `src/engine`: reusable 2D Canvas runtime boundary for canvas/DPR, frame loop, scene lifecycle, action-mapped input, world/entity storage, collision query, render helpers, asset preload, and debug hooks. It must not own Galaxy Runner-specific weapon, score, stage, item, boss, or HUD rules.
+- `src/core`: constants, math, collision, random, asset loading, and low-level drawing helpers.
+- `src/gameplay`: Galaxy Runner configuration and catalogs that define balance, weapons, stages, items, and score/distance rules.
+- `src/entities`: player, enemy, projectile, item, effect, and game object state.
+- `src/systems`: bounded gameplay systems such as weapons, items, collisions, boss AI, special skills, and performance pools.
+- `src/renderers`: canvas rendering boundaries and registered player part layout helpers.
+- `src/ui`: HUD, overlays, and game information UI.
+- `mulAg/md`: 멀티 에이전트 거버넌스 문서(Plan/TODO/Review/DONE)와 역할/템플릿 정의.
 
-## Gameplay docs
+## Engine / game boundary
 
-- `docs/GAMEPLAY_SYSTEMS.md`: shield, shield defense, and ship defense rules.
+- Engine-owned responsibilities live behind `src/engine` contracts and cover runtime mechanics only: canvas surface, clock, scene manager, input action state, entity store, reusable collision/render/asset/debug helpers.
+- Game-owned responsibilities stay in Galaxy Runner scene, gameplay, entities, systems, renderers, and UI: weapon identity, special meter rules, spawn/score/stage/continue, item effects, boss behavior, HUD copy, and player final-form rendering.
+- If a module boundary changes, update `docs/ENGINE_ARCHITECTURE.md`, `src/engine/README.md`, and this structure note together.
 
-## Weapon extension rule
+## Runtime assets
 
-- Add or change weapon identity, color, item weight, max level, core bonus, projectile profile, movement profile, footprint, HUD icon name, and final-form asset naming in `src/gameplay/weapon-catalog.js`.
-- Add support item metadata in `src/gameplay/item-definitions.js`.
-- Add shared runtime numbers in `src/gameplay/game-config.js`.
-- Systems should read weapon data from `WeaponCatalog` instead of hardcoding weapon names or balance values.
+- `assets/player/final-forms/<weapon>/<weapon>_01.PNG` ... `<weapon>_10.PNG`: authoritative player ship visuals. Replace any level file directly to change that level.
+- `assets/player/player-registered-parts-v1.png`: support atlas for armor, drone, and emergency base fallback only.
+- `assets/player/thruster-registered-v1.png`: registered thruster frames.
+- `assets/player/special-effects-registered-v1.png`: registered player special-effect frames.
+- `assets/projectiles/projectiles-v1.png`: projectile atlas.
+- `assets/items/*.svg`: item icons.
+- `assets/enemies/enemy-ships-v1.png`: enemy ship atlas.
+- `assets/bosses/*.svg`: stage boss parts and boss visual states.
 
-## Magic number rule
+## Docs & governance
 
-- Runtime, entity, system, and UI code should use named config values instead of raw tuning numbers.
-- New gameplay numbers belong in `src/gameplay/game-config.js`, `src/gameplay/weapon-catalog.js`, or `src/gameplay/item-definitions.js`.
-- Renderer vector path coordinates may stay local only when they define the literal shape being drawn.
-
-## Active runtime assets
-
-- `assets/enemies/enemy-ships-v1.png`
-- `assets/projectiles/projectiles-v1.png`
-- `assets/player/player-weapon-part-states-v5.png`
-- `assets/player/player-registered-parts-v1.png`
-- `assets/player/thruster-registered-v1.png`
-- `assets/player/special-effects-registered-v1.png`
-- `assets/player/final-forms/{rapid,energy,spread,nova}/{weapon}_01.PNG` ... `{weapon}_10.PNG`
-
-## Active player source assets
-
-- `assets/player/source/ship_redesign_v5/`: current AI source, alpha cutouts, and reference sheet for the player weapon evolution atlas.
-- `assets/player/source/player-parts-ai-v1.png`: source sheet for the fallback player rig, armor, and drones.
-- `assets/player/source/thruster-flames-ai-v1.png`: source sheet for registered thruster animation.
-
-## Active asset tools
-
-- `tools/assets/build-ship-redesign-v5.ps1`: builds the current v5 base ship and weapon part-state atlas.
-- `tools/assets/compile-player-rig.ps1`: builds fallback player rig, armor, drones, thrusters, and special effect atlases.
-- `tools/assets/clean-atlas-fringes.ps1`: utility for chroma/fringe cleanup when an atlas needs repair.
-- `tools/assets/replace-rapid-projectile.ps1`: projectile replacement helper.
+- `docs/GAMEPLAY_SYSTEMS.md`: gameplay 규칙/밸런스 설명서.
+- `docs/PLAYER_SHIP_REDESIGN_V5.md`, `docs/PLAYER_RIG_SPEC.md`, `docs/PLAYER_ASSET_STYLE_GUIDE.md`, `docs/AI_ASSET_PROMPT_RULES.md`: 자산 및 디자인 보조 문서.
+- `mulAg/md/README.md`: 작업 운영 메타 문서.
 
 ## Cleanup rule
 
-Do not reintroduce cropped floating weapon attachments for player evolution. Player weapon visuals must be generated as registered full-canvas layers and drawn through `PlayerPartLayout.drawEvolutionLayer`.
+Do not keep source contact sheets, preview renders, or one-off asset generation scripts in the runtime project. If an asset is needed in-game, export it into the runtime asset folders above. If it is only a production aid, keep it outside the repo or delete it after export.

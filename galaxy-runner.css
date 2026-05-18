@@ -92,55 +92,6 @@ button {
 button:hover {
   background: rgba(128, 222, 255, 0.24);
 }
-
-.startup-picker {
-  position: absolute;
-  z-index: 3;
-  left: 12px;
-  top: 72px;
-  right: 12px;
-  width: calc(100% - 24px);
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 10px 12px;
-  border: 1px solid rgba(127, 219, 255, 0.18);
-  border-radius: 10px;
-  background: rgba(5, 9, 18, 0.56);
-  backdrop-filter: blur(10px);
-  color: #d9f3ff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-}
-
-.startup-picker h2 {
-  margin: 0 0 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #ecfcff;
-}
-
-.startup-picker__field {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: rgba(233, 248, 255, 0.87);
-}
-
-.startup-picker__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 1fr));
-  gap: 8px 12px;
-}
-
-.startup-picker select {
-  min-width: 112px;
-  margin-left: 8px;
-  color: #ecfeff;
-  background: rgba(11, 18, 37, 0.72);
-  border: 1px solid rgba(143, 227, 255, 0.36);
-  border-radius: 6px;
-  padding: 4px 8px;
-}
-
 .stage {
   position: relative;
   width: 100%;
@@ -169,9 +120,5 @@ canvas {
     right: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  .startup-picker__grid {
-    grid-template-columns: 1fr 1fr;
   }
 }

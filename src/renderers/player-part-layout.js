@@ -2,9 +2,8 @@
 // Consumes pre-registered 512x512 player rig cells. Runtime does not assemble cropped parts.
 
 class PlayerPartLayout {
-  constructor(partAtlas, evolutionAtlas = null) {
+  constructor(partAtlas) {
     this.partAtlas = partAtlas;
-    this.evolutionAtlas = evolutionAtlas;
     this.rigSize = PLAYER_LAYOUT_CONFIG.defaultRigSize;
   }
 
@@ -16,10 +15,6 @@ class PlayerPartLayout {
     return PLAYER_LAYOUT_CONFIG.partDefinitions;
   }
 
-  weaponRows() {
-    return WeaponCatalog.rowMap();
-  }
-
   shipSlots() {
     return {
       wings: this.registeredSlot("wings"),
@@ -27,20 +22,6 @@ class PlayerPartLayout {
       fuselage: this.registeredSlot("fuselage"),
       cockpit: this.registeredSlot("cockpit"),
     };
-  }
-
-  hasWeaponEvolutionLayers() {
-    return this.evolutionAtlas && this.evolutionAtlas.isReady();
-  }
-
-  drawEvolutionLayer(ctx, kind, column, options = {}) {
-    if (!this.hasWeaponEvolutionLayers()) return false;
-
-    const row = this.weaponRows()[kind];
-    if (row === undefined) return false;
-
-    this.evolutionAtlas.draw(ctx, column, row, 0, 0, this.rigSize, this.rigSize, options);
-    return true;
   }
 
   armorSlot() {

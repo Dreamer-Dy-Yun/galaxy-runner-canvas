@@ -110,7 +110,6 @@ const INPUT_CONFIG = Object.freeze({
 const PLAYER_CONFIG = Object.freeze({
   assets: Object.freeze({
     parts: Object.freeze({ src: "assets/player/player-registered-parts-v1.png", columns: 4, rows: 3 }),
-    weaponEvolution: Object.freeze({ src: "assets/player/player-weapon-part-states-v5.png", columns: 10, rows: 4 }),
     thruster: Object.freeze({ src: "assets/player/thruster-registered-v1.png", columns: 4, rows: 3 }),
     specialEffect: Object.freeze({ src: "assets/player/special-effects-registered-v1.png", columns: 4, rows: 4 }),
   }),
@@ -791,11 +790,62 @@ const DRONE_CONFIG = Object.freeze({
   highDamageMultiplier: 2,
 });
 
+const GAME_CONFIG_CONTRACT_WARNINGS = new Set();
+
+function gameConfigWarn(code, message) {
+  if (GAME_CONFIG_CONTRACT_WARNINGS.has(code)) return;
+  GAME_CONFIG_CONTRACT_WARNINGS.add(code);
+  if (typeof console !== "undefined" && console.warn) {
+    console.warn(`[Gameplay Contract] ${message}`);
+  }
+}
+
+function normalizeDescendingPositiveIntegers(values, context, fallback) {
+  if (!Array.isArray(values)) {
+    gameConfigWarn(
+      `game-config.normalizeDescendingPositiveIntegers:${context}`,
+      `${context} is not an array. Using fallback tier ordering.`
+    );
+    return Object.freeze([...fallback]);
+  }
+
+  const normalized = Array.from(
+    new Set(
+      values
+        .map((value) => Math.round(Number(value)))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    )
+  ).sort((left, right) => right - left);
+
+  if (normalized.length === 0) {
+    gameConfigWarn(
+      `game-config.normalizeDescendingPositiveIntegers.empty:${context}`,
+      `${context} resolved to an empty list. Using fallback values.`
+    );
+    return Object.freeze([...fallback]);
+  }
+
+  const source = values
+    .map((value) => Math.round(Number(value)))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (source.length !== normalized.length || source.some((value, index) => value !== normalized[index])) {
+    gameConfigWarn(`game-config.normalizeDescendingPositiveIntegers.mismatch:${context}`, `${context} had unsupported order/type. Normalized to ${normalized.join(", ")}.`);
+  }
+
+  return Object.freeze(normalized);
+}
+
+const SPECIAL_TIER_COSTS = normalizeDescendingPositiveIntegers(
+  [75, 50, 25],
+  "SPECIAL_CONFIG.tierCosts",
+  [75, 50, 25]
+);
+
 const SPECIAL_CONFIG = Object.freeze({
   meterMax: 100,
   passiveRegenPerSecond: 0.8,
   inputCodes: Object.freeze(["ControlLeft", "ControlRight"]),
-  tierCosts: Object.freeze([75, 50, 25]),
+  tierCosts: SPECIAL_TIER_COSTS,
   overdrive: Object.freeze({
     duration: 6,
   }),
@@ -904,3 +954,26 @@ const SPECIAL_CONFIG = Object.freeze({
     }),
   }),
 });
+
+function validateSpecialConfigContracts() {
+  if (!Number.isFinite(SPECIAL_CONFIG.passiveRegenPerSecond) || SPECIAL_CONFIG.passiveRegenPerSecond < 0) {
+    gameConfigWarn(
+      "game-config.special.passiveRegen",
+      "SPECIAL_CONFIG.passiveRegenPerSecond should be a finite non-negative number."
+    );
+  }
+
+  for (const cost of SPECIAL_CONFIG.tierCosts) {
+    if (!SPECIAL_CONFIG.rapid.tiers[cost]) {
+      gameConfigWarn(`game-config.special.tier-missing:rapid:${cost}`, `Rapid special missing tier table for cost ${cost}.`);
+    }
+    if (!SPECIAL_CONFIG.energy.tiers[cost]) {
+      gameConfigWarn(`game-config.special.tier-missing:energy:${cost}`, `Energy special missing tier table for cost ${cost}.`);
+    }
+    if (!SPECIAL_CONFIG.spread.tiers[cost]) {
+      gameConfigWarn(`game-config.special.tier-missing:spread:${cost}`, `Spread special missing tier table for cost ${cost}.`);
+    }
+  }
+}
+
+validateSpecialConfigContracts();

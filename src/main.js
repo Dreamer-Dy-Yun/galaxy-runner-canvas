@@ -5,6 +5,7 @@
   const mainScriptUrl = document.currentScript?.src || "";
   const runtimeScripts = [
     { globalName: "AssetLoader", path: runtimePath("engine/assets/asset-loader.js") },
+    { globalName: "AssetPreloader", path: runtimePath("engine/assets/asset-preloader.js") },
     { globalName: "RenderHelpers", path: runtimePath("engine/rendering/render-helpers.js") },
     { globalName: "SpriteAtlas", path: runtimePath("engine/rendering/sprite-atlas.js") },
     { globalName: "Scene", path: runtimePath("engine/scenes/scene.js") },
@@ -18,6 +19,7 @@
     { globalName: "World", path: runtimePath("engine/world/world.js") },
     { globalName: "CollisionQuery", path: runtimePath("engine/physics/collision-query.js") },
     { globalName: "DebugOverlay", path: runtimePath("engine/debug/debug-overlay.js") },
+    { globalName: "FrameProfiler", path: runtimePath("engine/debug/frame-profiler.js") },
     { globalName: "EngineRuntime", path: runtimePath("engine/runtime/engine-runtime.js") },
   ];
 
@@ -61,6 +63,8 @@
       height: PLAYFIELD.height,
       dprFallback: GAME_CONFIG.dprFallback,
     });
+    warmupStartupAssets();
+
     const game = new Game(surface, restartButton);
     const sceneManager = new SceneManager();
     sceneManager.register("game", game);
@@ -78,8 +82,28 @@
     });
     debugOverlay.attach(runtime);
     globalThis.GalaxyRunnerDebug = debugOverlay;
+    const frameProfiler = new FrameProfiler();
+    frameProfiler.attach({
+      runtime,
+      scene: sceneManager,
+      surface,
+      debugOverlay,
+    });
+    globalThis.GalaxyRunnerFrameProfiler = frameProfiler;
 
     runtime.start();
+  }
+
+  function warmupStartupAssets() {
+    if (typeof Projectile !== "undefined" && typeof Projectile.warmupAssets === "function") {
+      Projectile.warmupAssets();
+    }
+    if (typeof Enemy !== "undefined" && typeof Enemy.warmupAssets === "function") {
+      Enemy.warmupAssets();
+    }
+    if (typeof ItemIconRenderer !== "undefined" && typeof ItemIconRenderer.warmupAssets === "function") {
+      ItemIconRenderer.warmupAssets();
+    }
   }
 
   boot().catch((error) => {

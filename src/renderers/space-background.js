@@ -5,6 +5,8 @@ class SpaceBackground {
   constructor(count = BACKGROUND_CONFIG.starCount) {
     this.count = count;
     this.stars = [];
+    this.backgroundGradient = null;
+    this.backgroundGradientHeight = 0;
     this.reset();
   }
 
@@ -21,11 +23,22 @@ class SpaceBackground {
     }
   }
 
-  draw(ctx, dt, time) {
+  gradient(ctx) {
+    if (this.backgroundGradient && this.backgroundGradientHeight === PLAYFIELD.height) {
+      return this.backgroundGradient;
+    }
+
     const grd = ctx.createLinearGradient(0, 0, 0, PLAYFIELD.height);
     grd.addColorStop(0, BACKGROUND_CONFIG.gradient.top);
     grd.addColorStop(BACKGROUND_CONFIG.gradient.middleStop, BACKGROUND_CONFIG.gradient.middle);
     grd.addColorStop(1, BACKGROUND_CONFIG.gradient.bottom);
+    this.backgroundGradient = grd;
+    this.backgroundGradientHeight = PLAYFIELD.height;
+    return this.backgroundGradient;
+  }
+
+  draw(ctx, dt, time) {
+    const grd = this.gradient(ctx);
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, PLAYFIELD.width, PLAYFIELD.height);
 

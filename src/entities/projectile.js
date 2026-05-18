@@ -75,6 +75,10 @@ class Projectile {
     return Projectile.projectileAtlas;
   }
 
+  static warmupAssets() {
+    Projectile.atlas();
+  }
+
   static defaultHitInterval(kind) {
     return PROJECTILE_CONFIG.hitIntervals[kind] ?? PROJECTILE_CONFIG.hitIntervals.default;
   }

@@ -7,11 +7,38 @@ class ItemIconRenderer {
     this.drawVector(ctx, kind, x, y, color, size);
   }
 
-  static drawImage(ctx, kind, x, y, size) {
-    const src = typeof itemIconSource === "function" ? itemIconSource(kind) : ITEM_DEFINITIONS[kind]?.iconSrc;
-    if (!src || typeof AssetLoader === "undefined") return false;
+  static imageCache() {
+    if (!this.cachedImages) this.cachedImages = new Map();
+    return this.cachedImages;
+  }
 
-    const image = AssetLoader.image(src);
+  static imageFor(kind) {
+    const src = typeof itemIconSource === "function" ? itemIconSource(kind) : ITEM_DEFINITIONS[kind]?.iconSrc;
+    if (!src || typeof AssetLoader === "undefined") return null;
+
+    const cache = this.imageCache();
+    if (!cache.has(src)) cache.set(src, AssetLoader.image(src));
+    return cache.get(src);
+  }
+
+  static warmupAssets(kinds = null) {
+    if (typeof ITEM_DEFINITIONS === "undefined") return;
+
+    const itemKinds = kinds || Object.keys(ITEM_DEFINITIONS);
+    for (const kind of itemKinds) {
+      this.imageFor(kind);
+    }
+
+    if (typeof EXTRA_ITEM_ICON_SOURCES !== "undefined") {
+      for (const kind of Object.keys(EXTRA_ITEM_ICON_SOURCES)) {
+        this.imageFor(kind);
+      }
+    }
+  }
+
+  static drawImage(ctx, kind, x, y, size) {
+    const image = this.imageFor(kind);
+    if (!image) return false;
     if (!AssetLoader.ready(image)) return false;
 
     const drawSize = Math.max(1, size - ITEM_ICON_CONFIG.imagePadding * 2);

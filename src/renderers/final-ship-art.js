@@ -17,31 +17,79 @@ class FinalShipArt {
     this.maxLevel = maxLevel;
     this.extension = extension;
     this.weaponKinds = new Set(supportedWeapons);
-    this.assets = this.buildAssetStore();
+    this.assets = new Map();
+    this.deferredPreloadList = this.buildDeferredPreloadList();
+    this.deferredPreloadIndex = 0;
+    this.preloadCritical();
+    this.scheduleDeferredPreload();
   }
 
-  buildAssetStore() {
-    const assets = new Map();
-
+  buildDeferredPreloadList() {
+    const list = [];
     for (const kind of this.weaponKinds) {
-      assets.set(kind, this.buildSequence(kind, this.maxLevel));
+      for (let level = 1; level <= this.maxLevel; level += 1) {
+        list.push({ kind, level });
+      }
     }
-
-    return assets;
+    return list;
   }
 
-  buildSequence(kind, maxLevel) {
-    const sequence = [];
+  imageSource(kind, level) {
     const folder = WeaponCatalog.finalAssetFolder(kind);
     const prefix = WeaponCatalog.finalAssetPrefix(kind);
+    const normalizedLevel = String(level).padStart(FinalShipArt.DEFAULT_PADDING, "0");
+    return `${this.basePath}/${folder}/${prefix}_${normalizedLevel}.${this.extension}`;
+  }
 
-    for (let level = 1; level <= maxLevel; level += 1) {
-      const normalizedLevel = String(level).padStart(FinalShipArt.DEFAULT_PADDING, "0");
-      const src = `${this.basePath}/${folder}/${prefix}_${normalizedLevel}.${this.extension}`;
-      sequence.push(AssetLoader.image(src));
+  imageForLevel(kind, level) {
+    if (!this.weaponKinds.has(kind)) return null;
+
+    let sequence = this.assets.get(kind);
+    if (!sequence) {
+      sequence = [];
+      this.assets.set(kind, sequence);
     }
 
-    return sequence;
+    const normalizedLevel = this.normalizeLevel(kind, level);
+    const index = normalizedLevel - 1;
+    if (!sequence[index]) {
+      sequence[index] = AssetLoader.image(this.imageSource(kind, normalizedLevel));
+    }
+    return sequence[index];
+  }
+
+  preloadCritical(kind = WeaponCatalog.defaultKind(), level = 1) {
+    if (!kind) return;
+    this.imageForLevel(kind, level);
+  }
+
+  scheduleDeferredPreload() {
+    if (this.deferredPreloadIndex >= this.deferredPreloadList.length) return;
+
+    const loadBatch = (deadline = null) => {
+      let loaded = 0;
+      while (
+        this.deferredPreloadIndex < this.deferredPreloadList.length &&
+        loaded < 2 &&
+        (!deadline || deadline.didTimeout || deadline.timeRemaining() > 4)
+      ) {
+        const entry = this.deferredPreloadList[this.deferredPreloadIndex];
+        this.imageForLevel(entry.kind, entry.level);
+        this.deferredPreloadIndex += 1;
+        loaded += 1;
+      }
+
+      if (this.deferredPreloadIndex < this.deferredPreloadList.length) {
+        this.scheduleDeferredPreload();
+      }
+    };
+
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(loadBatch, { timeout: 1200 });
+      return;
+    }
+
+    setTimeout(() => loadBatch(), 800);
   }
 
   draw(ctx, kind, level, size, x = 0, y = 0) {
@@ -53,11 +101,7 @@ class FinalShipArt {
   }
 
   get(kind, level) {
-    const sequence = this.assets.get(kind);
-    if (!sequence) return null;
-
-    const normalizedLevel = this.normalizeLevel(kind, level);
-    return sequence[normalizedLevel - 1] || null;
+    return this.imageForLevel(kind, level);
   }
 
   normalizeLevel(kind, level) {

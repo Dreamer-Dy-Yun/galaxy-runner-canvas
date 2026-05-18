@@ -1,51 +1,32 @@
-﻿# Player rig specification
+# Player Rig Spec
 
-Owner: Yoon Dae Young
-Codex partner: Codex GPT-5
-Current baseline: v5 full-canvas layer rig
+Current direction: each weapon and level uses a complete final-form ship image. Runtime does not stack weapon upgrade parts on top of a base body.
 
-## Runtime rule
+## Final-form contract
 
-The player ship is drawn from a shared rig coordinate system. Runtime must not crop arbitrary part rectangles and guess placement.
+- Folder: `assets/player/final-forms/<weapon>/`
+- File name: `<weapon>_01.PNG` through `<weapon>_10.PNG`
+- Weapons: `rapid`, `energy`, `spread`, `nova`
+- The game resolves the current weapon and level, then draws that exact PNG.
+- During development the 01-10 files may be visually identical. Later, replacing only one level file must immediately change that level after reload.
 
-## Active layers
+## Scale and hitbox
 
-- Base ship: `assets/player/player-base-ship-v5.png`
-- Weapon evolution atlas: `assets/player/player-weapon-part-states-v5.png`
-- Support atlas: `assets/player/player-registered-parts-v1.png`
-- Thruster atlas: `assets/player/thruster-registered-v1.png`
-- Special effect atlas: `assets/player/special-effects-registered-v1.png`
-- Final forms:
-  - `assets/player/final-forms/rapid/rapid_01.PNG` ... `rapid_10.PNG`
-  - `assets/player/final-forms/energy/energy_01.PNG` ... `energy_10.PNG`
-  - `assets/player/final-forms/spread/spread_01.PNG` ... `spread_10.PNG`
-  - `assets/player/final-forms/nova/nova_01.PNG` ... `nova_10.PNG`
+- Ship visual scale and hitbox scale are gameplay data, not image-offset hacks.
+- Rapid is drawn at 70% of the base visual scale, so its hitbox area is 49% of the base when width and height both use the same ratio.
+- Spread is intentionally larger and uses the same ratio for visual size and hitbox size.
+- Do not make graphics and hitbox ratios diverge unless the design explicitly calls for that exception.
 
-## Weapon evolution contract
+## Support atlases
 
-Primary path (new): final ship assets
-- For active weapon states, runtime loads a level-specific full-canvas final image:
-  - `assets/player/final-forms/{weapon}/{weapon}_{NN}.PNG`
-  - `NN` ranges from 01 to 10.
-- The selected final-form image is drawn centered on the player rig origin with `rigSize x rigSize` dimensions and replaces the base ship rig.
-- If final assets are unavailable, the system falls back to a minimal overlay pass from the weapon evolution atlas.
+`player-registered-parts-v1.png` remains only for non-final-form support visuals:
 
-Legacy atlas contract (fallback only):
-- Atlas grid: 10 columns x 4 rows.
-- Rows: rapid, energy, spread, nova.
-- Column used by fallback path: 7.
-- Every fallback atlas cell is drawn centered on the player rig origin; alignment comes from the image itself.
+- armor overlay
+- drone visuals
+- emergency base fallback if a final-form asset is unavailable
 
-Visual behavior:
-- Final-form path is authoritative for runtime visuals.
-- Fallback path is a single full overlay only, without mixed stage stacking.
-- Rapid should become visibly sharper and slightly smaller.
-- Spread should become broader and increase hitbox scale.
-- Energy should become heavier and slightly larger.
-- Nova follows the same full-canvas replacement rule.
+`thruster-registered-v1.png` and `special-effects-registered-v1.png` are separate registered atlases so effects can be drawn under or over the ship in the correct order.
 
-## Prohibited legacy paths
+## Removed direction
 
-- Do not load `player-weapon-attachments-ai-*` for player evolution.
-- Do not load `player-weapon-variants-*` for player evolution.
-- Do not add per-part x/y offset tables for weapon visuals unless the asset itself is not a registered full-canvas layer.
+The old layered weapon evolution atlas is no longer part of runtime rendering. Do not reintroduce cropped floating weapon attachments or per-level weapon overlays unless the design direction changes again.

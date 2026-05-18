@@ -1,5 +1,5 @@
 // Galaxy Runner - player
-// Owns player state, weapon collection, and AI atlas based visual composition.
+// Owns player state, weapon collection, and final-form/support-atlas visual composition.
 
 class Player {
   constructor() {
@@ -7,11 +7,6 @@ class Player {
       AssetLoader.image(PLAYER_CONFIG.assets.parts.src),
       PLAYER_CONFIG.assets.parts.columns,
       PLAYER_CONFIG.assets.parts.rows
-    );
-    this.weaponEvolutionSheet = new SpriteAtlas(
-      AssetLoader.image(PLAYER_CONFIG.assets.weaponEvolution.src),
-      PLAYER_CONFIG.assets.weaponEvolution.columns,
-      PLAYER_CONFIG.assets.weaponEvolution.rows
     );
     this.thrusterSheet = new SpriteAtlas(
       AssetLoader.image(PLAYER_CONFIG.assets.thruster.src),
@@ -24,11 +19,11 @@ class Player {
       PLAYER_CONFIG.assets.specialEffect.rows
     );
     this.finalShips = new FinalShipArt();
-    this.partLayout = new PlayerPartLayout(this.playerPartSheet, this.weaponEvolutionSheet);
+    this.partLayout = new PlayerPartLayout(this.playerPartSheet);
     this.reset();
   }
 
-  reset(startupProfile = null) {
+  reset() {
     this.x = PLAYFIELD.width * PLAYER_CONFIG.basePosition.xRatio;
     this.y = PLAYFIELD.height - PLAYER_CONFIG.basePosition.yFromBottom;
     this.baseBodyRadius = PLAYER_CONFIG.radii.body;
@@ -58,6 +53,7 @@ class Player {
     this.weaponHighestLevels = this.createWeaponLevelStore();
     this.weaponCores = this.createWeaponCoreStore();
     this.droneFireTimers = [0, 0, 0];
+    this.droneSlotsCache = [];
     this.droneLevel = 0;
     this.drones = 0;
     this.lean = 0;
@@ -67,48 +63,7 @@ class Player {
     this.specialMeter = 0;
     this.specialOverdriveTimer = 0;
     this.wasSpecialDown = false;
-    if (startupProfile) {
-      this.applyStartupProfile(startupProfile);
-    }
     this.updateWeaponFootprint();
-  }
-
-  applyStartupProfile(profile = null) {
-    const safeProfile = this.normalizeStartupProfile(profile);
-    this.clearWeaponLevels();
-    this.weaponHighestLevels = this.createWeaponLevelStore();
-
-    for (const kind of WEAPON_KINDS) {
-      this.setWeaponHighestLevel(kind, safeProfile.weaponLevels[kind]);
-    }
-
-    if (safeProfile.startWeapon) {
-      const level = this.weaponHighestLevel(safeProfile.startWeapon);
-      this.setWeaponLevel(safeProfile.startWeapon, level);
-    }
-    this.updateWeaponFootprint();
-  }
-
-  normalizeStartupProfile(profile = null) {
-    const emptyProfile = { startWeapon: null, weaponLevels: {} };
-    if (!profile) return emptyProfile;
-
-    const startWeapon = this.normalizeStartupWeapon(profile.startWeapon);
-    const weaponLevels = {};
-    for (const kind of WEAPON_KINDS) {
-      weaponLevels[kind] = this.normalizeStartupLevel(kind, profile.weaponLevels?.[kind]);
-    }
-
-    return { startWeapon, weaponLevels };
-  }
-
-  normalizeStartupWeapon(kind) {
-    if (!isWeaponKind(kind)) return null;
-    return kind;
-  }
-
-  normalizeStartupLevel(kind, level) {
-    return WeaponCatalog.normalizeStartupLevel(kind, level);
   }
 
   syncVisualRigToScale(scale = 1) {
@@ -136,11 +91,10 @@ class Player {
     if (!specialDown && game.input.isDown("Space") && this.fireTimer <= 0) {
       if (this.spreadLevel > 0) {
         this.fireSpread(game);
-        this.fireTimer = this.spreadFireDelay();
       } else {
         this.fire(game);
-        this.fireTimer = this.currentFireDelay();
       }
+      this.fireTimer = this.currentFireDelay();
     }
 
     this.updateDrones(dt, game);
@@ -224,7 +178,7 @@ class Player {
   }
 
   spreadFireDelay() {
-    return PLAYER_CONFIG.fire.spreadDelay;
+    return WeaponSystem.currentFireDelay(this);
   }
 
   spreadAngles() {
@@ -232,38 +186,31 @@ class Player {
   }
 
   fireSpread(game) {
-    const sideSpeed = WeaponCatalog.projectileSpeed("spread");
-    const sideRadius = PLAYER_CONFIG.fire.spreadRadius;
-    const sideDamage = WeaponSystem.applyCoreDamage(
-      this,
-      "spread",
-      BALANCE.statScale * WeaponCatalog.projectileDamageMultiplier("spread")
-    );
-    const sideColor = "#b7ff7b";
+    const shot = WeaponSystem.spreadSideShot(this);
 
     for (const angle of this.spreadAngles()) {
       const rad = (angle * Math.PI) / 180;
-      const vx = Math.sin(rad) * sideSpeed;
-      const vy = -Math.cos(rad) * sideSpeed;
+      const vx = Math.sin(rad) * shot.speed;
+      const vy = -Math.cos(rad) * shot.speed;
       game.addBullet(
         this.x - PLAYER_CONFIG.fire.spreadSideOffset,
         this.y - PLAYER_CONFIG.fire.spreadYOffset,
         -vx,
         vy,
-        sideRadius,
-        sideDamage,
-        sideColor,
-        "spread"
+        shot.radius,
+        shot.damage,
+        shot.color,
+        shot.kind
       );
       game.addBullet(
         this.x + PLAYER_CONFIG.fire.spreadSideOffset,
         this.y - PLAYER_CONFIG.fire.spreadYOffset,
         vx,
         vy,
-        sideRadius,
-        sideDamage,
-        sideColor,
-        "spread"
+        shot.radius,
+        shot.damage,
+        shot.color,
+        shot.kind
       );
     }
   }
@@ -312,10 +259,10 @@ class Player {
             PLAYER_CONFIG.drone.color,
             "drone",
             {
-            homing: true,
-            homingSpeed: PLAYER_CONFIG.drone.directShotSpeed,
-            turnRate: PLAYER_CONFIG.drone.homingTurnRate,
-            life: PLAYER_CONFIG.drone.homingLife,
+              homing: true,
+              homingSpeed: PLAYER_CONFIG.drone.directShotSpeed,
+              turnRate: PLAYER_CONFIG.drone.homingTurnRate,
+              life: PLAYER_CONFIG.drone.homingLife,
             }
           );
         }
@@ -337,18 +284,31 @@ class Player {
   }
 
   droneSlots(time) {
-    if (this.drones <= 0) return [];
-    return Array.from({ length: this.drones }, (_, index) => {
-      const angle =
-        time * PLAYER_CONFIG.drone.orbitSpeed +
-        index * ((Math.PI * 2) / this.drones) +
-        PLAYER_CONFIG.drone.initialAngle;
-      return {
-        x: this.x + Math.cos(angle) * PLAYER_CONFIG.drone.orbitRadiusX,
-        y: this.y + Math.sin(angle) * PLAYER_CONFIG.drone.orbitRadiusY,
-        angle,
-      };
-    });
+    const droneCount = this.drones;
+    if (droneCount <= 0) {
+      this.droneSlotsCache.length = 0;
+      return this.droneSlotsCache;
+    }
+
+    const { orbitRadiusX, orbitRadiusY, orbitSpeed, initialAngle } = PLAYER_CONFIG.drone;
+    const angleStep = (Math.PI * 2) / droneCount;
+    const baseAngle = time * orbitSpeed + initialAngle;
+    const cache = this.droneSlotsCache;
+
+    while (cache.length < droneCount) {
+      cache.push({ x: 0, y: 0, angle: 0 });
+    }
+    cache.length = droneCount;
+
+    for (let index = 0; index < droneCount; index += 1) {
+      const angle = baseAngle + index * angleStep;
+      const slot = cache[index];
+      slot.angle = angle;
+      slot.x = this.x + Math.cos(angle) * orbitRadiusX;
+      slot.y = this.y + Math.sin(angle) * orbitRadiusY;
+    }
+
+    return cache;
   }
 
   collect(item, game) {
@@ -563,14 +523,10 @@ class Player {
 
     const kind = this.activeWeaponKind();
     const level = this.activeWeaponLevel();
-    const hasFinalShip = this.drawFinalWeaponShip(ctx, kind, level);
-
-    if (!hasFinalShip) {
+    if (!this.drawFinalWeaponShip(ctx, kind, level)) {
       this.drawBaseShipLayer(ctx, time);
-      if (kind) {
-        this.drawWeaponEvolutionStack(ctx, kind, level);
-      }
     }
+
     this.drawArmorOverlay(ctx);
     ctx.restore();
   }
@@ -592,17 +548,6 @@ class Player {
       shadowBlur: 8,
     });
     return true;
-  }
-  drawWeaponEvolutionStack(ctx, kind, level) {
-    if (!WeaponCatalog.hasLayeredEvolution(kind)) return;
-
-    for (const column of WeaponCatalog.evolutionLayerColumns(kind, level)) {
-      this.partLayout.drawEvolutionLayer(ctx, kind, column, {
-        alpha: WeaponCatalog.layerAlpha(kind, level, column),
-        shadowColor: this.weaponGlowColor(kind, 0.58),
-        shadowBlur: 7,
-      });
-    }
   }
 
   drawArmorOverlay(ctx) {

@@ -6,10 +6,6 @@ const PLAYFIELD = Object.freeze({
   height: 540,
 });
 
-const DEV_TOOLS = Object.freeze({
-  finalShipStartupPicker: false,
-});
-
 const BALANCE = Object.freeze({
   statScale: 10,
   basePlayerHealth: 100,
