@@ -1,33 +1,80 @@
-// Galaxy Runner - game
+﻿// Galaxy Runner - game
 // Split from the original single-file prototype so each system can evolve independently.
 
 class Game {
-  constructor(canvas, restartButton) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
-    this.dpr = window.devicePixelRatio || GAME_CONFIG.dprFallback;
-    this.canvas.width = PLAYFIELD.width * this.dpr;
-    this.canvas.height = PLAYFIELD.height * this.dpr;
-    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  constructor(surfaceOrCanvas, restartButton) {
+    this.surface = Game.createSurface(surfaceOrCanvas);
+    this.canvas = this.surface.canvas;
+    this.ctx = this.surface.context;
+    this.dpr = this.surface.dpr;
+    this.frameDeltaSeconds = 0;
+    this.projectileCollisionContext = {
+      energyAbsorbers: [],
+      novaMines: [],
+    };
 
     this.input = new InputController(this, restartButton);
     this.background = new SpaceBackground();
-    this.startupPicker = DEV_TOOLS.finalShipStartupPicker ? new FinalShipStartupPicker() : null;
     this.infoPanelOpen = false;
     this.player = new Player();
+    this.world = null;
     this.reset();
+  }
+
+  enter() {
+    return this;
+  }
+
+  exit() {
+    this.input?.destroy?.();
+  }
+
+  handleAction(action) {
+    const actionName = typeof action === "string" ? action : action?.name;
+    if (!actionName || (action?.phase && action.phase !== "pressed")) return false;
+
+    if (actionName === "pause") {
+      this.togglePause();
+      return true;
+    }
+
+    if (actionName === "start") {
+      if (this.state?.mode !== "running") this.start();
+      return true;
+    }
+
+    if (actionName === "restart") {
+      this.reset();
+      this.start();
+      return true;
+    }
+
+    if (actionName === "info") {
+      if (action?.sourceEvent) this.handleCanvasClick(action.sourceEvent);
+      return true;
+    }
+
+    return false;
   }
 
   reset() {
     this.state = { ...GAME_CONFIG.initialState };
 
-    this.player.reset(this.startupProfile());
-    this.bullets = [];
-    this.enemies = [];
-    this.enemyBullets = [];
-    this.items = [];
-    this.explosions = [];
-    this.particles = [];
+    this.player.reset();
+    this.bossCount = 0;
+    this.resetEntityGroups();
+    this.projectileCollisionContext.energyAbsorbers.length = 0;
+    this.projectileCollisionContext.novaMines.length = 0;
+  }
+
+  resetEntityGroups() {
+    this.world = new World({ groups: Object.values(EntityGroups) });
+    this.bullets = this.world.items(EntityGroups.friendlyProjectiles);
+    this.enemies = this.world.items(EntityGroups.actors);
+    this.enemyBullets = this.world.items(EntityGroups.hostileProjectiles);
+    this.items = this.world.items(EntityGroups.collectibles);
+    this.explosions = this.world.items(EntityGroups.effects);
+    this.particles = this.world.items(EntityGroups.particles);
   }
 
   start() {
@@ -36,14 +83,12 @@ class Game {
       return;
     }
     if (this.state.mode === "ready") {
-      if (this.startupPicker) {
-        this.player.applyStartupProfile(this.startupProfile());
-      }
       this.state.mode = "running";
     }
   }
 
   continueRun() {
+    if (this.state.mode !== "gameover") return;
     this.state.continues += 1;
     this.state.mode = GAME_CONFIG.continue.mode;
     this.state.spawnTimer = Math.min(this.state.spawnTimer, -GAME_CONFIG.continue.spawnGraceSeconds);
@@ -53,18 +98,17 @@ class Game {
   }
 
   clearDangerField() {
-    this.bullets = [];
-    this.enemyBullets = [];
-    this.enemies = [];
-    this.explosions = [];
-    this.particles = [];
+    this.world.clearGroup(EntityGroups.friendlyProjectiles);
+    this.world.clearGroup(EntityGroups.hostileProjectiles);
+    this.world.clearGroup(EntityGroups.actors);
+    this.bossCount = 0;
+    this.world.clearGroup(EntityGroups.effects);
+    this.world.clearGroup(EntityGroups.particles);
   }
-
-  startupProfile() {
-    return this.startupPicker ? this.startupPicker.snapshot() : null;
-  }
-
   togglePause() {
+    if (!this.state || this.state.mode === "ready") return;
+    if (this.state.mode === "gameover") return;
+
     if (this.state.mode === "running") {
       this.state.mode = "paused";
       this.infoPanelOpen = false;
@@ -75,6 +119,7 @@ class Game {
   }
 
   handleCanvasClick(event) {
+    if (!this.state || this.state.mode !== "paused") return;
     if (this.state.mode !== "paused") return;
 
     const rect = this.canvas.getBoundingClientRect();
@@ -86,12 +131,20 @@ class Game {
   }
 
   addBullet(x, y, vx, vy, radius, damage, color, kind = "bolt", options = {}) {
-    this.bullets.push(new Projectile({ x, y, vx, vy, radius, damage, color, kind, ...options }));
+    this.world.add(
+      EntityGroups.friendlyProjectiles,
+      new Projectile({ x, y, vx, vy, radius, damage, color, kind, ...options })
+    );
+  }
+
+  registerEnemy(enemy) {
+    if (enemy?.isBoss) this.bossCount += 1;
+    this.world.add(EntityGroups.actors, enemy);
   }
 
   burst(x, y, color, count = 10) {
     for (let i = 0; i < count; i += 1) {
-      this.particles.push(new BurstParticle(x, y, color));
+      this.world.add(EntityGroups.particles, new BurstParticle(x, y, color));
     }
   }
 
@@ -110,7 +163,7 @@ class Game {
     const count = 1 + (Math.random() < extraOneChance ? 1 : 0) + (Math.random() < extraTwoChance ? 1 : 0);
 
     for (let i = 0; i < count; i += 1) {
-      this.enemies.push(new Enemy(danger, this.pickEnemyRole(danger)));
+      this.registerEnemy(new Enemy(danger, this.pickEnemyRole(danger)));
     }
   }
 
@@ -127,7 +180,7 @@ class Game {
   }
 
   spawnMidBoss() {
-    this.enemies.push(new Enemy(this.state.danger, "midboss"));
+    this.registerEnemy(new Enemy(this.state.danger, "midboss"));
     this.state.nextMidBoss = this.state.time + GAME_CONFIG.bosses.midBossRepeatDelay;
     if (this.state.nextBoss - this.state.nextMidBoss < GAME_CONFIG.bosses.midBossBossGap) {
       this.state.nextMidBoss = this.state.nextBoss + GAME_CONFIG.bosses.midBossAfterBossDelay;
@@ -135,7 +188,7 @@ class Game {
   }
 
   spawnBoss() {
-    this.enemies.push(new Enemy(this.state.danger, "boss", { stage: this.state.stage }));
+    this.registerEnemy(new Enemy(this.state.danger, "boss", { stage: this.state.stage }));
     this.state.nextBoss = this.state.time + GAME_CONFIG.bosses.bossRepeatDelay;
     this.state.nextMidBoss = Math.max(
       this.state.nextMidBoss,
@@ -151,7 +204,7 @@ class Game {
   spawnEnemyChildren(source, role = ENEMY_CONFIG.splitter.childRole, count = ENEMY_CONFIG.splitter.childCount) {
     const centerOffset = (count - 1) / 2;
     for (let index = 0; index < count; index += 1) {
-      this.enemies.push(
+      this.registerEnemy(
         new Enemy(this.state.danger, role, {
           x: source.x + (index - centerOffset) * ENEMY_CONFIG.splitter.childXSpread,
           y: source.y + Math.abs(index - centerOffset) * ENEMY_CONFIG.splitter.childYSpread,
@@ -162,11 +215,11 @@ class Game {
   }
 
   hasBossEnemy() {
-    return this.enemies.some((enemy) => enemy.isBoss);
+    return this.bossCount > 0;
   }
 
   spawnItem() {
-    this.items.push(new CollectibleItem(CollectibleItem.pickKind(this.player)));
+    this.world.add(EntityGroups.collectibles, new CollectibleItem(CollectibleItem.pickKind(this.player)));
   }
 
   nearestEnemy(x, y) {
@@ -225,16 +278,17 @@ class Game {
     }
 
     this.player.update(dt, this);
-    this.updateProjectiles(dt);
+    const collisionContext = this.buildProjectileCollisionContext();
+    this.updateProjectiles(dt, collisionContext);
     this.updateItems(dt);
-    this.updateEnemies(dt);
+    this.updateEnemies(dt, collisionContext);
     this.updateExplosions(dt);
     this.updateParticles(dt);
   }
 
-  updateProjectiles(dt) {
+  updateProjectiles(dt, collisionContext = null) {
     this.updatePlayerProjectiles(dt);
-    this.updateEnemyProjectiles(dt);
+    this.updateEnemyProjectiles(dt, collisionContext);
   }
 
   updatePlayerProjectiles(dt) {
@@ -250,7 +304,7 @@ class Game {
       }
     }
 
-    Game.compactKeptTail(this.bullets, firstKeptIndex);
+    EntityStore.compactKeptTail(this.bullets, firstKeptIndex);
   }
 
   resolveExpiredPlayerProjectile(projectile) {
@@ -266,14 +320,16 @@ class Game {
 
     for (let i = this.enemies.length - 1; i >= 0; i -= 1) {
       const enemy = this.enemies[i];
-      if (!Collision.circleCircle(enemy.x, enemy.y, enemy.blastHitRadius(), core.x, core.y, core.releaseRadius)) continue;
+      if (!CollisionQuery.overlaps(enemy, core, { aRadius: enemy.blastHitRadius(), bRadius: core.releaseRadius })) continue;
       this.damageEnemy(enemy, releaseDamage, core.color, core.releaseHitBurst);
     }
   }
 
-  updateEnemyProjectiles(dt) {
-    const collisionContext = this.enemyProjectileCollisionContext();
+  updateEnemyProjectiles(dt, collisionContext = null) {
+    const context = collisionContext || this.buildProjectileCollisionContext();
     const playerHitRadius = this.player.hitRadius ?? this.player.bodyRadius * GAME_CONFIG.projectiles.enemyHitPlayerRadiusScale;
+    const energyAbsorbers = context.energyAbsorbers;
+    const novaMines = context.novaMines;
     let firstKeptIndex = this.enemyBullets.length;
 
     for (let i = this.enemyBullets.length - 1; i >= 0; i -= 1) {
@@ -285,21 +341,21 @@ class Game {
         keepBullet = false;
       }
 
-      if (keepBullet && this.energyAbsorbsEnemyBullet(bullet, collisionContext.energyAbsorbers)) {
+      if (keepBullet && this.energyAbsorbsEnemyBullet(bullet, energyAbsorbers)) {
         this.burst(bullet.x, bullet.y, "#55f0ff", 5);
         keepBullet = false;
       }
 
-      const mine = keepBullet ? this.findNovaMineHit(bullet, collisionContext.novaMines) : null;
-      if (mine) {
-        this.detonateNovaMine(mine, collisionContext.novaMines);
+      const mineIndex = keepBullet ? this.findNovaMineHitIndex(bullet, novaMines) : -1;
+      if (mineIndex >= 0) {
+        this.detonateNovaMine(novaMines[mineIndex], novaMines, mineIndex);
         keepBullet = false;
       }
 
       const bulletHitRadius = bullet.hitRadius ?? bullet.radius;
       if (
         keepBullet &&
-        Collision.circleCircle(bullet.x, bullet.y, bulletHitRadius, this.player.x, this.player.y, playerHitRadius)
+        CollisionQuery.overlaps(bullet, this.player, { aRadius: bulletHitRadius, bRadius: playerHitRadius })
       ) {
         this.player.hit(this, bullet.damage || BALANCE.enemyFallbackDamage);
         keepBullet = false;
@@ -311,23 +367,25 @@ class Game {
       }
     }
 
-    Game.compactKeptTail(this.enemyBullets, firstKeptIndex);
+    EntityStore.compactKeptTail(this.enemyBullets, firstKeptIndex);
   }
 
-  enemyProjectileCollisionContext() {
-    const energyAbsorbers = [];
-    const novaMines = [];
+  buildProjectileCollisionContext() {
+    const context = this.projectileCollisionContext;
+    const energyAbsorbers = context.energyAbsorbers;
+    const novaMines = context.novaMines;
 
+    energyAbsorbers.length = 0;
+    novaMines.length = 0;
     for (const bullet of this.bullets) {
       if (bullet.kind === "energy" && (bullet.absorbLevel ?? 0) > 0) {
         energyAbsorbers.push(bullet);
-      }
-      if (bullet.kind === SPECIAL_CONFIG.nova.mineKind) {
+      } else if (bullet.kind === SPECIAL_CONFIG.nova.mineKind) {
         novaMines.push(bullet);
       }
     }
 
-    return { energyAbsorbers, novaMines };
+    return context;
   }
 
   energyAbsorbsEnemyBullet(enemyBullet, energyAbsorbers) {
@@ -338,7 +396,7 @@ class Game {
       const absorbLevel = bullet.absorbLevel ?? 0;
       if (enemyBullet.level > absorbLevel) continue;
       const energyRadius = bullet.hitRadius ?? bullet.radius;
-      if (Collision.circleCircle(bullet.x, bullet.y, energyRadius, enemyBullet.x, enemyBullet.y, enemyRadius)) {
+      if (CollisionQuery.overlaps(bullet, enemyBullet, { aRadius: energyRadius, bRadius: enemyRadius })) {
         bullet.absorbedEnemyBullets += 1;
         return true;
       }
@@ -348,50 +406,39 @@ class Game {
   }
 
   novaMines() {
-    const mines = [];
-    for (const bullet of this.bullets) {
-      if (bullet.kind === SPECIAL_CONFIG.nova.mineKind) mines.push(bullet);
-    }
-    return mines;
+    return this.projectileCollisionContext.novaMines;
   }
 
   novaMineCount() {
-    let count = 0;
-    for (const bullet of this.bullets) {
-      if (bullet.kind === SPECIAL_CONFIG.nova.mineKind) count += 1;
-    }
-    return count;
+    return this.projectileCollisionContext.novaMines.length;
   }
 
-  findNovaMineHit(projectile, mines = this.novaMines()) {
+  findNovaMineHitIndex(projectile, mines = this.novaMines()) {
+    if (!mines || mines.length <= 0) return -1;
+
     const radius = projectile.hitRadius ?? projectile.radius;
-    for (const mine of mines) {
-      if (Collision.circleCircle(mine.x, mine.y, mine.hitRadius ?? mine.radius, projectile.x, projectile.y, radius)) {
-        return mine;
-      }
-    }
-    return null;
+    return CollisionQuery.findFirstOverlap(mines, projectile, { targetRadius: radius }).index;
   }
 
   resolveNovaMineEnemyTrigger(enemy, mines) {
     const enemyTriggerRadius = enemy.blastHitRadius();
-    let mine = null;
-    for (const candidate of mines) {
-      if (Collision.circleCircle(candidate.x, candidate.y, candidate.hitRadius ?? candidate.radius, enemy.x, enemy.y, enemyTriggerRadius)) {
-        mine = candidate;
-        break;
-      }
-    }
+    const { entity: mine } = CollisionQuery.findFirstOverlap(mines, enemy, { targetRadius: enemyTriggerRadius });
     if (!mine) return false;
 
     this.detonateNovaMine(mine, mines);
     return true;
   }
 
-  detonateNovaMine(mine, mineCache = null) {
+  detonateNovaMine(mine, mineCache = null, mineCacheIndex = -1) {
+    if (!mine) return;
+
     const index = this.bullets.indexOf(mine);
-    if (index >= 0) this.bullets.splice(index, 1);
-    if (mineCache) Game.removeReference(mineCache, mine);
+    if (index >= 0) EntityStore.removeAtUnordered(this.bullets, index);
+    if (mineCache) {
+      const cacheIndex = mineCacheIndex >= 0 ? mineCacheIndex : mineCache.indexOf(mine);
+      if (cacheIndex >= 0) EntityStore.removeAtUnordered(mineCache, cacheIndex);
+    }
+
     this.spawnNovaExplosion(
       mine.x,
       mine.y,
@@ -402,29 +449,35 @@ class Game {
   }
 
   updateItems(dt) {
+    let firstKeptIndex = this.items.length;
+    const pickupRadius = this.player.pickupRadius ?? this.player.bodyRadius;
+
     for (let i = this.items.length - 1; i >= 0; i -= 1) {
       const item = this.items[i];
       item.update(dt, this);
-      if (item.expired) {
-        this.items.splice(i, 1);
+      if (item.expired) continue;
+
+      if (CollisionQuery.overlaps(item, this.player, { aRadius: item.radius, bRadius: pickupRadius })) {
+        this.player.collect(item, this);
         continue;
       }
-      const pickupRadius = this.player.pickupRadius ?? this.player.bodyRadius;
-      if (Collision.circleCircle(item.x, item.y, item.radius, this.player.x, this.player.y, pickupRadius)) {
-        this.player.collect(item, this);
-        this.items.splice(i, 1);
-      }
+
+      firstKeptIndex -= 1;
+      this.items[firstKeptIndex] = item;
     }
+
+    EntityStore.compactKeptTail(this.items, firstKeptIndex);
   }
 
-  updateEnemies(dt) {
-    const novaMines = this.novaMines();
+  updateEnemies(dt, collisionContext = null) {
+    const novaMines = collisionContext?.novaMines || this.novaMines();
     for (let i = this.enemies.length - 1; i >= 0; i -= 1) {
       const enemy = this.enemies[i];
       enemy.update(dt, this);
 
       if (enemy.escaped) {
-        this.enemies.splice(i, 1);
+        EntityStore.removeAtUnordered(this.enemies, i);
+        if (enemy.isBoss) this.bossCount = Math.max(0, this.bossCount - 1);
         continue;
       }
 
@@ -433,7 +486,8 @@ class Game {
       }
 
       if (enemy.collidesWithPlayer(this.player)) {
-        this.enemies.splice(i, 1);
+        EntityStore.removeAtUnordered(this.enemies, i);
+        if (enemy.isBoss) this.bossCount = Math.max(0, this.bossCount - 1);
         this.player.hit(this, enemy.isBoss ? BALANCE.bossCollisionDamage : BALANCE.enemyCollisionDamage);
         continue;
       }
@@ -470,7 +524,7 @@ class Game {
       if (bullet.pierce > 0) {
         bullet.pierce -= 1;
       } else {
-        this.bullets.splice(j, 1);
+        EntityStore.removeAtUnordered(this.bullets, j);
       }
 
       if (enemy.health <= 0) {
@@ -485,14 +539,17 @@ class Game {
     for (let i = this.enemies.length - 1; i >= 0; i -= 1) {
       const enemy = this.enemies[i];
       if (enemy === sourceEnemy) continue;
-      if (!Collision.circleCircle(enemy.x, enemy.y, enemy.blastHitRadius(), x, y, radius)) continue;
+      if (!CollisionQuery.overlaps(enemy, { x, y, radius }, { aRadius: enemy.blastHitRadius(), bRadius: radius })) continue;
 
       this.damageEnemy(enemy, damage, "#ffb17d", 6);
     }
   }
 
   spawnNovaExplosion(x, y, radius, damage, duration = null) {
-    this.explosions.push(new NovaExplosion({ x, y, radius, damage, duration: duration ?? BALANCE.novaExplosionDuration }));
+    this.world.add(
+      EntityGroups.effects,
+      new NovaExplosion({ x, y, radius, damage, duration: duration ?? BALANCE.novaExplosionDuration })
+    );
     this.burst(x, y, "#ff8f5a", 24);
   }
 
@@ -507,7 +564,7 @@ class Game {
       }
     }
 
-    Game.compactKeptTail(this.explosions, firstKeptIndex);
+    EntityStore.compactKeptTail(this.explosions, firstKeptIndex);
   }
 
   damageEnemy(enemy, damage, burstColor = "#ffb17d", burstCount = 6) {
@@ -526,6 +583,7 @@ class Game {
     const index = this.enemies.indexOf(enemy);
     if (index < 0) return false;
 
+    if (enemy.isBoss) this.bossCount = Math.max(0, this.bossCount - 1);
     SpecialSystem.awardKill(this.player, enemy);
     this.state.kills += 1;
     this.state.score += Game.enemyScore(enemy, this.state.danger);
@@ -539,7 +597,7 @@ class Game {
         ? GAME_CONFIG.enemyDestruction.eliteBurstCount
         : GAME_CONFIG.enemyDestruction.normalBurstCount
     );
-    this.enemies.splice(index, 1);
+    EntityStore.removeAtUnordered(this.enemies, index);
     return true;
   }
 
@@ -554,18 +612,50 @@ class Game {
       }
     }
 
-    Game.compactKeptTail(this.particles, firstKeptIndex);
+    EntityStore.compactKeptTail(this.particles, firstKeptIndex);
   }
 
   static compactKeptTail(array, firstKeptIndex) {
-    if (firstKeptIndex <= 0) return;
-    array.copyWithin(0, firstKeptIndex);
-    array.length -= firstKeptIndex;
+    return EntityStore.compactKeptTail(array, firstKeptIndex);
+  }
+
+  static removeAtUnordered(array, index) {
+    return EntityStore.removeAtUnordered(array, index);
   }
 
   static removeReference(array, item) {
-    const index = array.indexOf(item);
-    if (index >= 0) array.splice(index, 1);
+    return EntityStore.removeReference(array, item);
+  }
+
+  static createSurface(surfaceOrCanvas) {
+    if (surfaceOrCanvas?.canvas && surfaceOrCanvas?.context) {
+      return surfaceOrCanvas;
+    }
+
+    if (!surfaceOrCanvas || typeof surfaceOrCanvas.getContext !== "function") {
+      throw new Error("Game requires a valid canvas element or CanvasSurface");
+    }
+
+    if (typeof CanvasSurface === "function") {
+      return new CanvasSurface(surfaceOrCanvas, {
+        width: PLAYFIELD.width,
+        height: PLAYFIELD.height,
+        dprFallback: GAME_CONFIG.dprFallback,
+      });
+    }
+
+    const context = surfaceOrCanvas.getContext("2d");
+    const dpr = window.devicePixelRatio || GAME_CONFIG.dprFallback;
+    surfaceOrCanvas.width = PLAYFIELD.width * dpr;
+    surfaceOrCanvas.height = PLAYFIELD.height * dpr;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return {
+      canvas: surfaceOrCanvas,
+      context,
+      dpr,
+      width: PLAYFIELD.width,
+      height: PLAYFIELD.height,
+    };
   }
 
   draw(dt) {
@@ -640,7 +730,7 @@ class Game {
     this.ctx.textBaseline = "middle";
     this.ctx.font = GAME_INFO_CONFIG.panel.sectionFont;
     this.ctx.fillStyle = "#f6fbff";
-    this.ctx.fillText(this.infoPanelOpen ? "닫기" : button.label, button.x + button.width / 2, button.y + button.height / 2);
+    this.ctx.fillText(this.infoPanelOpen ? button.closeLabel : button.label, button.x + button.width / 2, button.y + button.height / 2);
     this.ctx.restore();
   }
 
@@ -724,7 +814,7 @@ class Game {
     this.ctx.textAlign = "left";
     this.ctx.font = GAME_INFO_CONFIG.panel.sectionFont;
     this.ctx.fillStyle = GAME_INFO_CONFIG.panel.sectionColor;
-    this.ctx.fillText("아이템", grid.titleX, grid.titleY);
+    this.ctx.fillText(GAME_INFO.itemTitle, grid.titleX, grid.titleY);
 
     for (let index = 0; index < GAME_INFO.items.length; index += 1) {
       const item = GAME_INFO.items[index];
@@ -764,15 +854,24 @@ class Game {
     return Math.ceil(baseScore * dangerMultiplier);
   }
 
-  frame(now) {
-    const dt = Math.min((now - (this.lastFrame || now)) / 1000, GAME_CONFIG.maxFrameDelta);
-    this.lastFrame = now;
-    this.update(dt);
-    this.draw(dt);
-    requestAnimationFrame((time) => this.frame(time));
+  frame(frameState = {}) {
+    if (!this.ctx || !this.state) {
+      return;
+    }
+
+    const dt = clampNumber(
+      Number.isFinite(frameState.deltaSeconds) ? frameState.deltaSeconds : 0,
+      0,
+      GAME_CONFIG.maxFrameDelta
+    );
+    this.frameDeltaSeconds = dt;
+    try {
+      if (dt > 0) {
+        this.update(dt);
+      }
+      this.draw(dt);
+    } finally {
+      this.input?.endFrame?.();
+    }
   }
 }
-
-
-
-

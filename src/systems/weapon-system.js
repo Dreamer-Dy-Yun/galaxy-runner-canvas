@@ -2,6 +2,24 @@
 // Keeps weapon math out of Player so visuals can evolve independently.
 
 class WeaponSystem {
+  static activeKind(player) {
+    return typeof player.activeWeaponKind === "function" ? player.activeWeaponKind() : null;
+  }
+
+  static weaponLevel(player, kind) {
+    if (!kind) return 0;
+    return typeof player.weaponLevel === "function" ? player.weaponLevel(kind) : 0;
+  }
+
+  static activeLevel(player) {
+    return WeaponSystem.weaponLevel(player, WeaponSystem.activeKind(player));
+  }
+
+  static baseDamage(scale = 1) {
+    const safeScale = Number.isFinite(scale) ? scale : 1;
+    return BALANCE.statScale * safeScale;
+  }
+
   static coreDamageMultiplier(player, kind) {
     const coreLevel = typeof player.weaponCoreLevel === "function" ? player.weaponCoreLevel(kind) : 0;
     return WeaponCatalog.coreDamageMultiplier(kind, coreLevel);
@@ -11,75 +29,91 @@ class WeaponSystem {
     return damage * WeaponSystem.coreDamageMultiplier(player, kind);
   }
 
+  static scaledWeaponDamage(player, kind, baseScale = 1, options = {}) {
+    const level = options.level ?? WeaponSystem.weaponLevel(player, kind);
+    const levelStep = Number.isFinite(options.levelStep) ? options.levelStep : 0;
+    const levelScale = 1 + Math.max(0, level - 1) * levelStep;
+    const projectileScale = options.includeProjectileMultiplier === false
+      ? 1
+      : WeaponCatalog.projectileDamageMultiplier(kind);
+
+    return WeaponSystem.applyCoreDamage(
+      player,
+      kind,
+      WeaponSystem.baseDamage(baseScale) * levelScale * projectileScale
+    );
+  }
+
   static currentMoveSpeed(player) {
-    const kind = typeof player.activeWeaponKind === "function" ? player.activeWeaponKind() : null;
-    const level = typeof player.activeWeaponLevel === "function" ? player.activeWeaponLevel() : 0;
+    const kind = WeaponSystem.activeKind(player);
+    const level = WeaponSystem.activeLevel(player);
     return player.speed * WeaponCatalog.moveSpeedMultiplier(kind, level);
   }
 
   static visualScale(player) {
-    const kind = typeof player.activeWeaponKind === "function" ? player.activeWeaponKind() : null;
-    const level = typeof player.activeWeaponLevel === "function" ? player.activeWeaponLevel() : 0;
+    const kind = WeaponSystem.activeKind(player);
+    const level = WeaponSystem.activeLevel(player);
     return WeaponCatalog.visualScale(kind, level);
   }
 
   static hitboxScale(player) {
-    const kind = typeof player.activeWeaponKind === "function" ? player.activeWeaponKind() : null;
-    const level = typeof player.activeWeaponLevel === "function" ? player.activeWeaponLevel() : 0;
+    const kind = WeaponSystem.activeKind(player);
+    const level = WeaponSystem.activeLevel(player);
     return WeaponCatalog.hitboxScale(kind, level);
   }
 
   static currentFireDelay(player) {
-    if (player.rapidLevel > 0) {
-      const baseRate = 1 / player.fireDelay;
-      const rapidRate = baseRate * (1.25 ** player.rapidLevel);
+    const kind = WeaponSystem.activeKind(player);
+    const level = WeaponSystem.weaponLevel(player, kind);
+    const baseDelay = Number.isFinite(player.fireDelay) ? player.fireDelay : BALANCE.baseFireDelay;
+
+    if (kind === "spread") return PLAYER_CONFIG.fire.spreadDelay;
+
+    if (kind === "rapid") {
+      const baseRate = 1 / baseDelay;
+      const rapidRate = baseRate * (1.25 ** level);
       return 1 / rapidRate;
     }
 
-    if (player.energyLevel > 0) return player.fireDelay + 0.08;
-    if (player.novaLevel > 0) return player.fireDelay + 0.16;
-    return player.fireDelay;
+    if (kind === "energy") return baseDelay + 0.08;
+    if (kind === "nova") return baseDelay + 0.16;
+    return baseDelay;
   }
 
   static mainShot(player) {
-    const energyLevel = player.energyLevel;
-    const rapidLevel = player.rapidLevel;
-    const novaLevel = player.novaLevel;
+    const kind = WeaponSystem.activeKind(player);
+    const level = WeaponSystem.weaponLevel(player, kind);
 
-    if (energyLevel > 0) {
+    if (kind === "energy") {
       return {
-        radius: WeaponCatalog.projectileRadius("energy", energyLevel),
-        damage: WeaponSystem.applyCoreDamage(player, "energy", (2 + energyLevel) * BALANCE.statScale),
+        radius: WeaponCatalog.projectileRadius("energy", level),
+        damage: WeaponSystem.scaledWeaponDamage(player, "energy", 2 + level),
         speed: -500,
         color: "#55f0ff",
         kind: "energy",
-        pierce: Math.max(0, energyLevel - 4),
+        pierce: Math.max(0, level - 4),
         blastRadius: 0,
-        absorbLevel: WeaponCatalog.projectileAbsorbLevel("energy", energyLevel),
+        absorbLevel: WeaponCatalog.projectileAbsorbLevel("energy", level),
       };
     }
 
-    if (novaLevel > 0) {
+    if (kind === "nova") {
       return {
-        radius: WeaponCatalog.projectileRadius("nova", novaLevel),
-        damage: WeaponSystem.applyCoreDamage(player, "nova", (2 + Math.ceil(novaLevel * 0.75)) * BALANCE.statScale),
-        speed: WeaponCatalog.projectileSpeed("nova", novaLevel),
+        radius: WeaponCatalog.projectileRadius("nova", level),
+        damage: WeaponSystem.scaledWeaponDamage(player, "nova", 2 + Math.ceil(level * 0.75)),
+        speed: WeaponCatalog.projectileSpeed("nova", level),
         color: "#ff8f5a",
         kind: "nova",
         pierce: 0,
-        blastRadius: WeaponCatalog.projectileBlastRadius("nova", novaLevel),
-        blastDuration: WeaponCatalog.projectileBlastDuration("nova", novaLevel),
+        blastRadius: WeaponCatalog.projectileBlastRadius("nova", level),
+        blastDuration: WeaponCatalog.projectileBlastDuration("nova", level),
       };
     }
 
-    if (rapidLevel > 0) {
+    if (kind === "rapid") {
       return {
         radius: 4.5,
-        damage: WeaponSystem.applyCoreDamage(
-          player,
-          "rapid",
-          (1 + Math.floor((rapidLevel - 1) / 5)) * BALANCE.statScale * WeaponCatalog.projectileDamageMultiplier("rapid")
-        ),
+        damage: WeaponSystem.scaledWeaponDamage(player, "rapid", 1 + Math.floor((level - 1) / 5)),
         speed: WeaponCatalog.projectileSpeed("rapid"),
         color: "#ffe06a",
         kind: "rapid",
@@ -96,6 +130,17 @@ class WeaponSystem {
       kind: "bolt",
       pierce: 0,
       blastRadius: 0,
+    };
+  }
+
+  static spreadSideShot(player) {
+    const level = WeaponSystem.weaponLevel(player, "spread");
+    return {
+      speed: WeaponCatalog.projectileSpeed("spread", level),
+      radius: PLAYER_CONFIG.fire.spreadRadius,
+      damage: WeaponSystem.scaledWeaponDamage(player, "spread"),
+      color: "#b7ff7b",
+      kind: "spread",
     };
   }
 

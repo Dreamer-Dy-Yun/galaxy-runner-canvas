@@ -47,6 +47,7 @@ Play here:
 ```text
 assets/      Game images and generated visual assets
 docs/        Current gameplay and asset specifications
+mulAg/       Multi-agent governance docs (PLAN/TODO/REVIEW/DONE)
 src/core/    Shared low-level utilities
 src/engine/  Game loop, input, world orchestration
 src/entities Runtime game objects
@@ -63,3 +64,10 @@ src/ui       HUD and developer UI
 - Runtime tuning should live in `src/gameplay/game-config.js`.
 - Weapon identity and progression should live in `src/gameplay/weapon-catalog.js`.
 - Keep `docs/GAMEPLAY_SYSTEMS.md` aligned with current gameplay direction.
+
+## Multi-agent operation guide
+
+- Planning 문서는 `mulAg/md/plan/PLAN-2026-05-18-game-improvement.md`.
+- 실행 단위는 `mulAg/md/todo/TODO-001.md` ... `TODO-005.md`.
+- 성능/안정성/동작 검증 리뷰는 `mulAg/md/review/REVIEW-*.md`.
+- TODO 완료 판단은 QA가 `mulAg/md/done`로 이동하기 전까지는 최종 확정되지 않는다.

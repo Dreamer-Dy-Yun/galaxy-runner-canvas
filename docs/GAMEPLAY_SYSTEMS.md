@@ -149,6 +149,33 @@ Date: 2026-05-10
 - Game Info content and layout tuning are owned by `src/gameplay/game-info.js`.
 - The panel should be kept current whenever ship roles, item effects, or special skills change.
 
+## TODO-002 (게임플레이 계약 정합성 정리)
+
+- `src/gameplay/weapon-catalog.js`와 `src/gameplay/item-definitions.js`는 런타임 계약을 방어적으로 검증한다.
+  - 무기/아이템 정의의 필수 필드 누락, 잘못된 타입, 빈/중복 kind에 대해 경고를 1회 출력한다.
+  - 계약 불일치 시 기본 동작은 최소 안전 동작(fallback)으로 수렴하며, UI가 임의의 임시 텍스트/아이콘 값을 생성하지 않도록 한다.
+- `src/gameplay/game-config.js`는 `SPECIAL_CONFIG.tierCosts`를 정합성 검사하고 정규화한다.
+  - 비용 배열은 양의 정수 내림차순으로 정규화하고, 누락/역전/비정상 값 시 fallback + 경고를 남긴다.
+  - 티어별 설정이 실제 존재하지 않을 경우 경고를 남기고 동작을 중단하지 않는다.
+- `src/gameplay/game-info.js`는 게임 정보 패널 데이터의 정규화/검증을 추가한다.
+  - ship/item 항목의 kind, 이름, 태그, 효과 텍스트를 정리하고, 정규식 실패 시 경고를 남긴다.
+  - 무기 kind 미존재/아이템 정의 누락/중복/빈 태그/빈 효과 텍스트는 경고 처리하며,
+    누락 항목은 정해진 fallback으로 표시한다.
+
+## TODO-003 (특수능력/무기 정합화)
+
+- Player weapon damage is calculated through `WeaponSystem.scaledWeaponDamage`.
+- The shared player weapon damage order is `BALANCE.statScale -> base scale -> weapon catalog projectile damage multiplier -> weapon level scale -> weapon core multiplier`.
+- Normal weapon fire delay is owned by `WeaponSystem.currentFireDelay`, including Spread's fixed delay.
+- `Player` chooses the active normal fire pattern, then receives the fire delay from `WeaponSystem`.
+- `SpecialSystem` resolves weapon kind, affordable cost, and tier config before creating special effects.
+- Special meter is spent only after a valid special effect path is selected.
+- During Special Overdrive, `SpecialSystem.currentMeter` treats the meter as 100%, so tier selection, HUD percent, readiness, and spending use the same overdrive rule.
+- Nova mine count checks use the live projectile list when available, so max-mine gating does not depend on a stale collision cache.
+- Special activation burst counts come from `SPECIAL_CONFIG` tier or Nova mine config only.
+- Weapon level affects special damage and Nova mine radius/duration as documented, but does not add extra activation particles.
+- Remaining behavior risk: high-tier Spread special intentionally creates many projectiles, and Energy release damage can spike with absorbed bullet count. Performance work must preserve those gameplay contracts unless the spec changes.
+
 ## Special skills
 
 - Ctrl now uses the current weapon's special skill instead of charging while held.

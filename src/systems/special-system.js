@@ -18,6 +18,10 @@ class SpecialSystem {
   }
 
   static gain(player, amount) {
+    if (SpecialSystem.hasOverdrive(player)) {
+      player.specialMeter = SPECIAL_CONFIG.meterMax;
+      return;
+    }
     player.specialMeter = clampNumber((player.specialMeter || 0) + amount, 0, SPECIAL_CONFIG.meterMax);
   }
 
@@ -28,7 +32,7 @@ class SpecialSystem {
   }
 
   static percent(player) {
-    return Math.floor(clampNumber(player.specialMeter || 0, 0, SPECIAL_CONFIG.meterMax));
+    return Math.floor(SpecialSystem.currentMeter(player));
   }
 
   static readiness(player) {
@@ -36,7 +40,7 @@ class SpecialSystem {
     if (!kind) return 0;
     const cost = SpecialSystem.minimumCost(kind);
     if (cost <= 0) return 0;
-    return clampNumber((player.specialMeter || 0) / cost, 0, 1);
+    return clampNumber(SpecialSystem.currentMeter(player) / cost, 0, 1);
   }
 
   static minimumCost(kind) {
@@ -44,21 +48,34 @@ class SpecialSystem {
     return SPECIAL_CONFIG.tierCosts[SPECIAL_CONFIG.tierCosts.length - 1] ?? SPECIAL_CONFIG.meterMax;
   }
 
+  static hasOverdrive(player) {
+    return (player.specialOverdriveTimer || 0) > 0;
+  }
+
+  static currentMeter(player) {
+    if (SpecialSystem.hasOverdrive(player)) return SPECIAL_CONFIG.meterMax;
+    return clampNumber(player.specialMeter || 0, 0, SPECIAL_CONFIG.meterMax);
+  }
+
   static tierCost(player) {
-    const meter = player.specialMeter || 0;
+    const meter = SpecialSystem.currentMeter(player);
     for (const cost of SPECIAL_CONFIG.tierCosts) {
       if (meter >= cost) return cost;
     }
     return 0;
   }
 
+  static canSpend(player, cost) {
+    return Number.isFinite(cost) && cost > 0 && SpecialSystem.currentMeter(player) >= cost;
+  }
+
   static spend(player, cost) {
-    if ((player.specialMeter || 0) < cost) return false;
-    if (player.specialOverdriveTimer > 0) {
+    if (!SpecialSystem.canSpend(player, cost)) return false;
+    if (SpecialSystem.hasOverdrive(player)) {
       player.specialMeter = SPECIAL_CONFIG.meterMax;
       return true;
     }
-    player.specialMeter = clampNumber(player.specialMeter - cost, 0, SPECIAL_CONFIG.meterMax);
+    player.specialMeter = clampNumber(SpecialSystem.currentMeter(player) - cost, 0, SPECIAL_CONFIG.meterMax);
     return true;
   }
 
@@ -69,32 +86,44 @@ class SpecialSystem {
     if (kind === "nova") return SpecialSystem.dropNovaMine(player, game);
 
     const cost = SpecialSystem.tierCost(player);
-    if (cost <= 0 || !SpecialSystem.spend(player, cost)) return false;
+    if (cost <= 0 || !SpecialSystem.canSpend(player, cost) || !SpecialSystem.tierConfig(kind, cost)) return false;
 
-    if (kind === "rapid") SpecialSystem.fireRapid(player, game, cost);
-    else if (kind === "energy") SpecialSystem.fireEnergy(player, game, cost);
-    else if (kind === "spread") SpecialSystem.fireSpread(player, game, cost);
-    else return false;
+    let fired = false;
+    if (kind === "rapid") fired = SpecialSystem.fireRapid(player, game, cost);
+    else if (kind === "energy") fired = SpecialSystem.fireEnergy(player, game, cost);
+    else if (kind === "spread") fired = SpecialSystem.fireSpread(player, game, cost);
+
+    if (!fired) return false;
+    SpecialSystem.spend(player, cost);
 
     return true;
   }
 
   static level(player, kind) {
-    return player.weaponLevel?.(kind) || 1;
+    return WeaponSystem.weaponLevel(player, kind) || 1;
   }
 
   static scaledDamage(player, kind, baseScale, levelStep) {
-    const level = SpecialSystem.level(player, kind);
-    return WeaponSystem.applyCoreDamage(
-      player,
-      kind,
-      BALANCE.statScale * baseScale * (1 + (level - 1) * levelStep) * WeaponCatalog.projectileDamageMultiplier(kind)
-    );
+    return WeaponSystem.scaledWeaponDamage(player, kind, baseScale, { levelStep });
+  }
+
+  static tierConfig(kind, cost) {
+    const config = SPECIAL_CONFIG[kind];
+    return config?.tiers?.[cost] ?? null;
+  }
+
+  static activeNovaMineCount(game) {
+    if (Array.isArray(game?.bullets)) {
+      return game.bullets.filter((bullet) => bullet.kind === SPECIAL_CONFIG.nova.mineKind).length;
+    }
+    if (typeof game?.novaMineCount === "function") return game.novaMineCount();
+    return SPECIAL_CONFIG.nova.maxMines;
   }
 
   static fireRapid(player, game, cost) {
-    const tier = SPECIAL_CONFIG.rapid.tiers[cost];
-    const level = SpecialSystem.level(player, "rapid");
+    const tier = SpecialSystem.tierConfig("rapid", cost);
+    if (!tier) return false;
+
     const beamLength = player.y + SPECIAL_CONFIG.rapid.beamLengthPadding;
     const damage = SpecialSystem.scaledDamage(player, "rapid", tier.damageScale, SPECIAL_CONFIG.rapid.levelDamageStep);
 
@@ -106,12 +135,14 @@ class SpecialSystem {
       hitInterval: SPECIAL_CONFIG.rapid.hitInterval,
       followPlayer: true,
     });
-    game.burst(player.x, player.y - PLAYER_CONFIG.fire.yOffset, SPECIAL_CONFIG.rapid.color, tier.burst + Math.floor(level / 2));
+    game.burst(player.x, player.y - PLAYER_CONFIG.fire.yOffset, SPECIAL_CONFIG.rapid.color, tier.burst);
+    return true;
   }
 
   static fireEnergy(player, game, cost) {
-    const tier = SPECIAL_CONFIG.energy.tiers[cost];
-    const level = SpecialSystem.level(player, "energy");
+    const tier = SpecialSystem.tierConfig("energy", cost);
+    if (!tier) return false;
+
     const damage = SpecialSystem.scaledDamage(player, "energy", tier.damageScale, SPECIAL_CONFIG.energy.levelDamageStep);
 
     game.addBullet(player.x, player.y - SPECIAL_CONFIG.energy.yOffset, 0, tier.speed, tier.radius, damage, SPECIAL_CONFIG.energy.color, "energy", {
@@ -125,12 +156,14 @@ class SpecialSystem {
       releaseBurst: tier.releaseBurst,
       releaseHitBurst: tier.releaseHitBurst,
     });
-    game.burst(player.x, player.y - SPECIAL_CONFIG.energy.yOffset, SPECIAL_CONFIG.energy.color, tier.burst + Math.floor(level / 2));
+    game.burst(player.x, player.y - SPECIAL_CONFIG.energy.yOffset, SPECIAL_CONFIG.energy.color, tier.burst);
+    return true;
   }
 
   static fireSpread(player, game, cost) {
-    const tier = SPECIAL_CONFIG.spread.tiers[cost];
-    const level = SpecialSystem.level(player, "spread");
+    const tier = SpecialSystem.tierConfig("spread", cost);
+    if (!tier) return false;
+
     const damage = SpecialSystem.scaledDamage(player, "spread", tier.damageScale, SPECIAL_CONFIG.spread.levelDamageStep);
 
     for (let i = 0; i < tier.shots; i += 1) {
@@ -148,12 +181,14 @@ class SpecialSystem {
         { pierce: tier.pierce, life: tier.life }
       );
     }
-    game.burst(player.x, player.y - SPECIAL_CONFIG.spread.yOffset, SPECIAL_CONFIG.spread.color, tier.burst + Math.floor(level));
+    game.burst(player.x, player.y - SPECIAL_CONFIG.spread.yOffset, SPECIAL_CONFIG.spread.color, tier.burst);
+    return true;
   }
 
   static dropNovaMine(player, game) {
-    if (game.novaMineCount() >= SPECIAL_CONFIG.nova.maxMines) return false;
-    if (!SpecialSystem.spend(player, SPECIAL_CONFIG.nova.cost)) return false;
+    const cost = SPECIAL_CONFIG.nova.cost;
+    if (SpecialSystem.activeNovaMineCount(game) >= SPECIAL_CONFIG.nova.maxMines) return false;
+    if (!SpecialSystem.canSpend(player, cost)) return false;
 
     const level = SpecialSystem.level(player, "nova");
     const damage = SpecialSystem.scaledDamage(player, "nova", SPECIAL_CONFIG.nova.damageScale, 0);
@@ -176,6 +211,6 @@ class SpecialSystem {
       }
     );
     game.burst(player.x, player.y - SPECIAL_CONFIG.nova.yOffset, SPECIAL_CONFIG.nova.color, SPECIAL_CONFIG.nova.burst);
-    return true;
+    return SpecialSystem.spend(player, cost);
   }
 }

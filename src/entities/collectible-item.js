@@ -5,6 +5,7 @@ class CollectibleItem {
   constructor(kind) {
     this.category = itemCategory(kind);
     this.applyKind(kind);
+    this.bouncePadding = ITEM_FIELD_CONFIG.bounds.padding + this.radius;
     this.x = randomRange(ITEM_FIELD_CONFIG.spawn.xPadding, PLAYFIELD.width - ITEM_FIELD_CONFIG.spawn.xPadding);
     this.y = randomRange(ITEM_FIELD_CONFIG.spawn.yMin, ITEM_FIELD_CONFIG.spawn.yMax);
     this.vy = randomRange(ITEM_FIELD_CONFIG.velocity.yMin, ITEM_FIELD_CONFIG.velocity.yMax);
@@ -19,6 +20,7 @@ class CollectibleItem {
     const definition = ITEM_DEFINITIONS[kind] || ITEM_DEFINITIONS.bonus;
     this.color = definition.color;
     this.radius = definition.radius ?? ITEM_DEFINITIONS.bonus.radius;
+    this.bouncePadding = ITEM_FIELD_CONFIG.bounds.padding + this.radius;
   }
 
   static pickKind(player = null, category = null, excludeKind = null) {
@@ -72,11 +74,10 @@ class CollectibleItem {
   }
 
   bounceWithinField() {
-    const padding = ITEM_FIELD_CONFIG.bounds.padding + this.radius;
-    const minX = padding;
-    const maxX = PLAYFIELD.width - padding;
-    const minY = padding;
-    const maxY = PLAYFIELD.height - padding;
+    const minX = this.bouncePadding;
+    const maxX = PLAYFIELD.width - this.bouncePadding;
+    const minY = this.bouncePadding;
+    const maxY = PLAYFIELD.height - this.bouncePadding;
 
     if (this.x < minX) {
       this.x = minX;

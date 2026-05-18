@@ -36,7 +36,8 @@ class NovaExplosion {
   }
 
   damageEnemies(game) {
-    for (const enemy of [...game.enemies]) {
+    for (let index = game.enemies.length - 1; index >= 0; index -= 1) {
+      const enemy = game.enemies[index];
       if (!Collision.circleCircle(enemy.x, enemy.y, enemy.blastHitRadius(), this.x, this.y, this.radius)) continue;
       game.damageEnemy(enemy, this.damage, "#ffb17d", 7);
     }

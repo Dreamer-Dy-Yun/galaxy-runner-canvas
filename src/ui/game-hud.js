@@ -96,6 +96,9 @@ class GameHud {
 
   static activeTags(player) {
     const tags = [];
+    const shieldDefense = player.shieldDefense();
+    const totalDefense = player.totalDefense();
+
     if (player.maxShield > 0) {
       tags.push(GameHud.iconTag("shield", `${Math.ceil(player.shield)}/${player.maxShield}`, ITEM_DEFINITIONS.shield.color));
     }
@@ -106,12 +109,12 @@ class GameHud {
       tags.push(
         GameHud.iconTag(
           "shieldDefense",
-          `D${GameHud.formatNumber(player.shieldDefense())}`,
+          `D${GameHud.formatNumber(shieldDefense)}`,
           ITEM_DEFINITIONS.shieldDefense.color
         )
       );
     }
-    if (player.armorLevel > 0 || player.totalDefense() > 0) tags.push(GameHud.armorTag(player));
+    if (player.armorLevel > 0 || totalDefense > 0) tags.push(GameHud.armorTag(player, totalDefense));
     for (const tag of GameHud.weaponLevelTags(player)) tags.push(tag);
     for (const tag of GameHud.weaponCoreTags(player)) tags.push(tag);
     if (player.droneLevel > 0) tags.push(GameHud.iconTag("drone", player.droneLevel, ITEM_DEFINITIONS.drone.color));
@@ -135,10 +138,11 @@ class GameHud {
     return [];
   }
 
-  static armorTag(player) {
+  static armorTag(player, totalDefense = null) {
     const values = [];
     if (player.armorLevel > 0) values.push(player.armorLevel);
-    if (player.totalDefense() > 0) values.push(`D${GameHud.formatNumber(player.totalDefense())}`);
+    const defense = Number.isFinite(totalDefense) ? totalDefense : player.totalDefense();
+    if (defense > 0) values.push(`D${GameHud.formatNumber(defense)}`);
     return GameHud.iconTag("armor", values.join("/"), ITEM_DEFINITIONS.armor.color);
   }
 
