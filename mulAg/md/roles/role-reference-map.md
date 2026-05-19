@@ -8,6 +8,7 @@
 
 - `mulAg/md/roles/orchestrator.md`
 - `mulAg/md/roles/common-rules.md`
+- `mulAg/md/plan/active/*.md`
 - `mulAg/md/plan/*.md`
 
 작성하는 문서:
@@ -69,6 +70,7 @@
 
 - todo 문서는 반드시 참조 plan을 명시한다.
 - todo 문서는 반드시 선행 조건, 수정 가능 파일, 생성 가능 파일, 읽기 전용 파일, 수정 금지 파일을 명시한다.
+- Orchestrator는 Sub-Agent 호출 시 참조할 todo 파일 경로를 직접 명시한다.
 - review 문서는 반드시 참조 todo를 명시한다.
 - done 문서는 반드시 원본 review와 todo를 추적할 수 있어야 한다.
 - Sub-Agent가 참조해야 할 추가 문서가 있으면 todo의 `읽기 전용 파일`에 명시한다.

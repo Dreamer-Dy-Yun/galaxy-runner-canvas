@@ -321,3 +321,13 @@ Date: 2026-05-10
 - Collision-heavy systems should prefer cheap broadphase checks before expensive exact checks.
 - Repeated per-projectile scans should cache relevant candidates once per frame when possible.
 - Hot projectile arrays should avoid repeated middle-of-array deletion in tight loops when many projectiles can expire in one frame.
+
+## Weapon and armor redesign
+
+- Player weapon damage uses `BALANCE.weaponDamageMultiplier` on top of the base stat scale.
+- Enemy roles can define flat `armor`.
+- Enemy HP damage uses `max(1, rawDamage - armor)` after any Guardian shield absorption.
+- This makes low-damage rapid hits weak against armored enemies while high-damage Energy and Nova hits remain effective.
+- Rapid normal fire is a narrow pulse laser. Rapid special remains the wider sustained beam.
+- Energy normal and special projectiles use the same enlarged hit radius for damage and enemy bullet absorption so the visible orb reads as a usable barrier.
+- Nova normal fire leans into high single-hit damage with stronger level scaling for radius, blast radius, and blast duration.

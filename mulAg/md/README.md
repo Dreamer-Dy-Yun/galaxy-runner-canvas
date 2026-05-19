@@ -8,6 +8,8 @@
 역할 분리보다 파일 수정 권한 분리를 우선한다.
 작업 단위는 작게 나눈다.
 각 작업에는 수정 가능 파일, 생성 가능 파일, 읽기 전용 파일, 수정 금지 파일을 명시한다.
+각 todo에는 참조 plan을 명시한다.
+Orchestrator는 각 Sub-Agent에게 참조할 todo 파일을 명시한다.
 Sub-Agent는 todo에 적힌 범위 밖의 파일을 수정하지 않는다.
 동일 파일을 여러 Sub-Agent가 동시에 수정하지 않는다.
 QA는 review를 검토하여 done 처리하거나 plan/todo로 되돌린다.
@@ -18,6 +20,7 @@ QA는 review를 검토하여 done 처리하거나 plan/todo로 되돌린다.
 ```text
 mulAg/md/
 ├── plan/       # 계획 관련 문서 보관 - Orchestrator 참조 영역
+│   └── active/ # 현재 todo 분해 대상인 활성 계획
 ├── todo/       # 수행 예정 단위 문서 보관 - Sub-Agent 참조 영역
 ├── review/     # 수행 결과 보관 - QA 검토 대기 영역
 ├── done/       # 완료 내용 보관
@@ -68,7 +71,8 @@ done/
 Orchestrator
 ├── 필수 참조: roles/orchestrator.md
 ├── 필수 참조: roles/common-rules.md
-├── 입력 참조: plan/*.md
+├── 입력 참조: plan/active/*.md
+├── 보조 입력 참조: plan/*.md
 ├── 작성 참조: templates/todo-template.md
 └── 출력 위치: todo/TODO-*.md
 

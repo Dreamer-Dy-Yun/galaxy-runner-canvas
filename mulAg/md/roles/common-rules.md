@@ -22,6 +22,8 @@
 
 작업 단위는 가능한 작게 유지한다.
 
+각 작업 단위는 상위 plan에서 todo로 분해되어야 하며, todo에는 참조 plan을 명시한다.
+
 나쁜 예:
 
 ```text
@@ -41,6 +43,8 @@ TODO-003: 인증 미들웨어 책임 분리
 ## 입력/출력 계약
 
 Sub-Agent 간 연결이 필요한 경우 Orchestrator는 입력/출력 계약을 명시한다.
+
+Orchestrator는 Sub-Agent 호출 시 해당 Sub-Agent가 참조할 todo 파일 경로를 직접 명시한다.
 
 입력:
 
@@ -87,7 +91,8 @@ QA가 완료 기준을 만족한다고 판단한 경우에만 `done/`으로 이�
 ├── 동일 파일을 여러 Sub-Agent가 동시에 수정
 ├── 선행 조건이 완료되지 않은 후속 todo 수행
 ├── review 없이 done 처리
-└── QA 검토 없이 plan/todo 임의 변경
+├── QA 검토 없이 plan/todo 임의 변경
+└── 참조 todo 파일 없이 Sub-Agent에게 직접 구현 지시
 ```
 
 ## 최소 실행 예시
@@ -95,9 +100,10 @@ QA가 완료 기준을 만족한다고 판단한 경우에만 `done/`으로 이�
 ```text
 1. 사용자가 plan/에 요구사항 작성
 2. Orchestrator가 plan을 읽고 TODO-001.md, TODO-002.md 작성
-3. Sub-Agent가 각 todo를 기준으로 작업 수행
-4. Sub-Agent가 review/에 REVIEW-001.md 작성
-5. QA가 review 검토
-6. 문제가 없으면 done/으로 이동
-7. 문제가 있으면 todo 또는 plan으로 되돌림
+3. Orchestrator가 각 Sub-Agent에게 참조할 todo 파일을 명시
+4. Sub-Agent가 각 todo를 기준으로 작업 수행
+5. Sub-Agent가 review/에 REVIEW-001.md 작성
+6. QA가 review 검토
+7. 문제가 없으면 done/으로 이동
+8. 문제가 있으면 todo 또는 plan으로 되돌림
 ```

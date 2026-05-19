@@ -6,19 +6,22 @@ Orchestrator는 전체 작업을 분해하고, Sub-Agent가 충돌 없이 작업
 
 ## 주요 책임
 
-- `plan/` 문서를 기반으로 작업 단위를 분석한다.
+- `plan/active/` 문서를 우선 기반으로 작업 단위를 분석한다.
 - 작업 단위를 `todo/` 문서로 작성한다.
 - Sub-Agent 간 작업 범위가 겹치지 않도록 경계를 명확히 나눈다.
 - 동일 파일을 여러 Sub-Agent가 동시에 수정하지 않도록 파일 접근 권한을 구분한다.
 - 필요한 경우 입력/출력 계약을 명확히 정의한다.
 - 각 todo 문서는 수행 단계와 완료 기준을 확인하기 쉽게 작성한다.
 - 선행 작업이 필요한 경우 todo에 선행 조건을 명시한다.
+- plan이 todo로 충분히 분해되었는지 추적할 수 있도록 todo에 참조 plan을 명시한다.
+- 각 Sub-Agent에게 참조할 todo 파일을 명시한다.
 
 ## 참조해야 하는 문서
 
 - 필수 참조: `mulAg/md/roles/orchestrator.md`
 - 필수 참조: `mulAg/md/roles/common-rules.md`
-- 입력 참조: `mulAg/md/plan/*.md`
+- 입력 참조: `mulAg/md/plan/active/*.md`
+- 보조 입력 참조: `mulAg/md/plan/*.md`
 - 작성 양식: `mulAg/md/templates/todo-template.md`
 - 출력 위치: `mulAg/md/todo/TODO-*.md`
 
@@ -32,6 +35,7 @@ Orchestrator는 `review/`와 `done/`을 직접 처리하지 않는다. 단, 재�
 1개 todo
 ├── 1개 명확한 작업 목적
 ├── 1개 책임 영역
+├── 명시된 참조 plan
 ├── 명시된 선행 조건
 ├── 명시된 수정 가능 파일
 ├── 명시된 생성 가능 파일
@@ -123,8 +127,32 @@ TODO-002: main.py 기능 추가
 - 읽기 전용 파일은 참조 목적을 함께 적는다.
 - 수정 금지 파일은 민감 데이터, 운영 스크립트, 잠금 파일 등을 포함한다.
 - 완료 기준은 QA가 판단 가능하도록 구체적으로 작성한다.
+- 참조 plan은 todo가 어떤 상위 계획에서 분해되었는지 추적할 수 있도록 명시한다.
 - 선행 조건이 필요한 작업은 어떤 todo가 done 처리되어야 하는지 명시한다.
 - 동일 파일을 여러 Sub-Agent가 동시에 수정하는 todo를 만들지 않는다.
+- Sub-Agent를 호출할 때는 해당 Sub-Agent가 읽어야 할 todo 파일 경로를 프롬프트에 직접 명시한다.
+
+## Sub-Agent 호출 원칙
+
+Orchestrator는 Sub-Agent에게 plan 전체를 실행하라고 지시하지 않는다.
+
+Sub-Agent 호출 프롬프트에는 최소한 다음 항목을 포함한다.
+
+```text
+1. 참조할 todo 파일 경로
+2. 해당 todo만 수행하라는 지시
+3. 다른 Sub-Agent와 동시에 작업 중일 수 있다는 주의
+4. todo에 명시된 수정 가능 파일 밖을 수정하지 말라는 제한
+5. 테스트/검증 실행 여부
+```
+
+예:
+
+```text
+mulAg/md/todo/TODO-WEAPON-ARMOR-001.md 를 먼저 읽고 그 todo만 수행한다.
+너는 혼자가 아니며 다른 Sub-Agent가 다른 todo를 수행 중이다.
+todo의 수정 가능 파일 밖은 수정하지 않는다.
+```
 
 ## todo 작성 형식
 
@@ -132,6 +160,8 @@ TODO-002: main.py 기능 추가
 # TODO: 작업명
 
 ## 목적
+
+## 참조 plan
 
 ## 작업 범위
 

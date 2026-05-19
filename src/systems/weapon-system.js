@@ -17,7 +17,7 @@ class WeaponSystem {
 
   static baseDamage(scale = 1) {
     const safeScale = Number.isFinite(scale) ? scale : 1;
-    return BALANCE.statScale * safeScale;
+    return BALANCE.statScale * (BALANCE.weaponDamageMultiplier ?? 1) * safeScale;
   }
 
   static coreDamageMultiplier(player, kind) {
@@ -87,7 +87,7 @@ class WeaponSystem {
     if (kind === "energy") {
       return {
         radius: WeaponCatalog.projectileRadius("energy", level),
-        damage: WeaponSystem.scaledWeaponDamage(player, "energy", 2 + level),
+        damage: WeaponSystem.scaledWeaponDamage(player, "energy", 2.4 + level * 1.35),
         speed: -500,
         color: "#55f0ff",
         kind: "energy",
@@ -100,7 +100,7 @@ class WeaponSystem {
     if (kind === "nova") {
       return {
         radius: WeaponCatalog.projectileRadius("nova", level),
-        damage: WeaponSystem.scaledWeaponDamage(player, "nova", 2 + Math.ceil(level * 0.75)),
+        damage: WeaponSystem.scaledWeaponDamage(player, "nova", 2.6 + level * 1.1),
         speed: WeaponCatalog.projectileSpeed("nova", level),
         color: "#ff8f5a",
         kind: "nova",

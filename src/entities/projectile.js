@@ -160,7 +160,7 @@ class Projectile {
   }
 
   draw(ctx) {
-    if (!this.energyCore && this.kind !== "rapidBeam" && this.kind !== SPECIAL_CONFIG.nova.mineKind && this.drawSprite(ctx)) return;
+    if (!this.energyCore && this.kind !== "rapidBeam" && this.kind !== "rapid" && this.kind !== SPECIAL_CONFIG.nova.mineKind && this.drawSprite(ctx)) return;
 
     if (this.hostile) {
       this.drawEnemyBullet(ctx);
@@ -397,22 +397,24 @@ class Projectile {
   }
 
   drawRapidShot(ctx) {
+    const speed = Math.hypot(this.vx, this.vy) || 1;
+    const tailScale = clampNumber(speed * 0.026, 18, 30) / speed;
+
     ctx.save();
-    ctx.shadowColor = "#ffe600";
-    ctx.shadowBlur = 18;
-    ctx.strokeStyle = "#ffe600";
-    ctx.lineWidth = Math.max(4.2, this.radius * 1.6);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.shadowColor = "#ffe36b";
+    ctx.shadowBlur = 10;
     ctx.lineCap = "round";
+
+    ctx.strokeStyle = "rgba(255, 218, 74, 0.56)";
+    ctx.lineWidth = Math.max(2.2, this.radius * 0.72);
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
-    ctx.lineTo(this.x - this.vx * 0.058, this.y - this.vy * 0.058);
+    ctx.lineTo(this.x - this.vx * tailScale, this.y - this.vy * tailScale);
     ctx.stroke();
 
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.86)";
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y);
-    ctx.lineTo(this.x - this.vx * 0.04, this.y - this.vy * 0.04);
+    ctx.strokeStyle = "rgba(255, 255, 245, 0.92)";
+    ctx.lineWidth = Math.max(0.9, this.radius * 0.26);
     ctx.stroke();
     ctx.restore();
   }

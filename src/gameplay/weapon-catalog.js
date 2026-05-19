@@ -353,8 +353,8 @@ WeaponCatalog.DEFINITIONS = Object.freeze({
     icon: "energy",
     pickupBurst: 18,
     projectile: {
-      radius: (level) => 7 * (1 + level * 0.1),
-      absorbLevel: (level) => Math.min(3, 1 + Math.floor(level / 5)),
+      radius: (level) => 8 + Math.max(0, level - 1) * 1.25,
+      absorbLevel: (level) => Math.min(4, 1 + Math.floor(Math.max(0, level) / 3)),
     },
     movement: {
       speedMultiplier: 0.894,
@@ -390,9 +390,9 @@ WeaponCatalog.DEFINITIONS = Object.freeze({
     pickupBurst: 18,
     projectile: {
       speed: -220,
-      radius: (level) => 8 * (1 + (level - 1) * 0.1),
-      blastRadius: (level) => 26 * (1 + (level - 1) * 0.2),
-      blastDuration: (level) => BALANCE.novaExplosionDuration * (1 + (level - 1) * 0.1),
+      radius: (level) => 8 + Math.max(0, level - 1) * 1.25,
+      blastRadius: (level) => 28 + Math.max(0, level - 1) * 7,
+      blastDuration: (level) => BALANCE.novaExplosionDuration * (1 + Math.max(0, level - 1) * 0.16),
     },
     footprint: {
       visualScale: (level) => Math.min(1.1, 1 + Math.min(10, level) * 0.01),

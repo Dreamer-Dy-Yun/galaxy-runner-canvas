@@ -85,6 +85,7 @@ class Enemy {
     const healthScale = this.isBoss ? 1 : 1 + danger * ENEMY_CONFIG.health.nonBossDangerScale;
     this.health = Math.max(ENEMY_CONFIG.health.minimum, Math.round(stats.health(danger) * healthScale * BALANCE.statScale));
     this.maxHealth = this.health;
+    this.armor = Math.max(0, Math.round(Number(stats.armor) || 0));
     this.velocityX = stats.velocityX(danger);
     this.velocityY = stats.velocityY(danger);
     this.color = stats.color;
@@ -387,8 +388,9 @@ class Enemy {
       }
     }
 
-    this.health -= remainingDamage;
-    return { damage: remainingDamage, blocked: false, color: options.color ?? this.color, burst: options.burst ?? 5 };
+    const effectiveDamage = Math.max(1, remainingDamage - (this.armor || 0));
+    this.health -= effectiveDamage;
+    return { damage: effectiveDamage, blocked: false, color: options.color ?? this.color, burst: options.burst ?? 5 };
   }
 
   isStageBossVulnerable() {

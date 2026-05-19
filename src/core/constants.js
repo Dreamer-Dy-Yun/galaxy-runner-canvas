@@ -8,6 +8,7 @@ const PLAYFIELD = Object.freeze({
 
 const BALANCE = Object.freeze({
   statScale: 10,
+  weaponDamageMultiplier: 1.18,
   basePlayerHealth: 100,
   armorMaxLevel: 5,
   armorHealthStep: 20,
