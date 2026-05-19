@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 72" role="img" aria-label="Linked enemy train coupler">
+  <defs>
+    <linearGradient id="rail" x1="12" y1="2" x2="12" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffef9a" stop-opacity="0.15"/>
+      <stop offset="0.42" stop-color="#7ef5ff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ff7f9b" stop-opacity="0.18"/>
+    </linearGradient>
+    <radialGradient id="node" cx="50%" cy="50%" r="52%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#8ffbff"/>
+      <stop offset="1" stop-color="#1b4960" stop-opacity="0.1"/>
+    </radialGradient>
+    <filter id="glow" x="-80%" y="-30%" width="260%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g fill="none" filter="url(#glow)">
+    <path d="M12 5 C7 16 17 25 12 36 C7 47 17 56 12 67" stroke="#123446" stroke-width="9" stroke-linecap="round" opacity="0.52"/>
+    <path d="M12 5 C7 16 17 25 12 36 C7 47 17 56 12 67" stroke="url(#rail)" stroke-width="4.2" stroke-linecap="round"/>
+    <path d="M7 14 H17 M6 36 H18 M7 58 H17" stroke="#ffdf7a" stroke-width="2" stroke-linecap="round" opacity="0.72"/>
+  </g>
+  <g filter="url(#glow)">
+    <circle cx="12" cy="6" r="4.2" fill="url(#node)"/>
+    <circle cx="12" cy="36" r="5" fill="url(#node)" opacity="0.78"/>
+    <circle cx="12" cy="66" r="4.2" fill="url(#node)"/>
+  </g>
+</svg>

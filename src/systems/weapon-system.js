@@ -117,7 +117,7 @@ class WeaponSystem {
     if (kind === "rapid") {
       return {
         radius: 4.5,
-        damage: 20 + Math.max(0, level - 1) * (20 / 9),
+        damage: 25 + Math.max(0, level - 1) * (25 / 9),
         speed: WeaponCatalog.projectileSpeed("rapid"),
         color: "#ffe06a",
         kind: "rapid",
@@ -142,7 +142,9 @@ class WeaponSystem {
     return {
       speed: WeaponCatalog.projectileSpeed("spread", level),
       radius: PLAYER_CONFIG.fire.spreadRadius,
-      damage: WeaponSystem.scaledWeaponDamage(player, "spread"),
+      damage: WeaponSystem.scaledWeaponDamage(player, "spread", 1, {
+        levelStep: 0.0631,
+      }),
       color: "#b7ff7b",
       kind: "spread",
     };
@@ -151,10 +153,10 @@ class WeaponSystem {
   static spreadAngles(level) {
     if (level <= 0) return [];
     const count = Math.min(11, Math.max(2, level + 1));
-    if (count === 2) return [30, 60];
+    if (count === 2) return [-7, 24];
 
-    const min = 15;
-    const max = 75;
+    const min = -8;
+    const max = 58;
     const step = (max - min) / (count - 1);
     return Array.from({ length: count }, (_, index) => min + step * index);
   }

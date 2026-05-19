@@ -7,6 +7,9 @@ class Enemy {
     this.isBoss = this.role === "midboss" || this.role === "boss";
     this.stage = options.stage ?? 0;
     this.spawnOptions = options;
+    this.formation = options.formation ?? null;
+    this.formationIndex = options.formationIndex ?? 0;
+    this.formationCount = options.formationCount ?? 1;
     this.wave = randomRange(0, Math.PI * 2);
     this.phase = randomRange(0, Math.PI * 2);
     this.setupStats(danger);
@@ -24,8 +27,26 @@ class Enemy {
     return Enemy.enemyAtlas;
   }
 
+  static trainCoupler() {
+    if (!Enemy.trainCouplerImage) {
+      Enemy.trainCouplerImage = AssetLoader.image("assets/enemies/train-coupler.svg");
+    }
+
+    return Enemy.trainCouplerImage;
+  }
+
+  static trainNode() {
+    if (!Enemy.trainNodeImage) {
+      Enemy.trainNodeImage = AssetLoader.image("assets/enemies/train-node.svg");
+    }
+
+    return Enemy.trainNodeImage;
+  }
+
   static warmupAssets() {
     Enemy.atlas();
+    Enemy.trainCoupler();
+    Enemy.trainNode();
   }
 
   static pickRole(danger = 0) {
@@ -138,6 +159,8 @@ class Enemy {
 
     if (Number.isFinite(this.spawnOptions.x)) this.x = this.spawnOptions.x;
     if (Number.isFinite(this.spawnOptions.y)) this.y = this.spawnOptions.y;
+    if (Number.isFinite(this.spawnOptions.velocityX)) this.velocityX = this.spawnOptions.velocityX;
+    if (Number.isFinite(this.spawnOptions.velocityY)) this.velocityY = this.spawnOptions.velocityY;
   }
 
   update(dt, game) {
@@ -199,7 +222,7 @@ class Enemy {
       this.y < PLAYFIELD.height - ENEMY_CONFIG.firingWindow.bottomPadding
     ) {
       if (this.isBoss) this.fireBossPattern(game);
-      else this.fireAt(game.player, game.state.danger, game);
+      else this.fireRolePattern(game);
       this.fireTimer = this.nextFireDelay(game.state.danger);
     }
   }
@@ -312,6 +335,43 @@ class Enemy {
     }));
   }
 
+  fireRolePattern(game) {
+    const pattern = ENEMY_CONFIG.rolePatterns[this.role];
+    if (!pattern) {
+      this.fireAt(game.player, game.state.danger, game);
+      return;
+    }
+
+    this.fireSpreadAtPlayer(game, pattern);
+  }
+
+  fireSpreadAtPlayer(game, pattern) {
+    const dx = game.player.x - this.x;
+    const dy = game.player.y - this.y;
+    const baseAngle = Math.atan2(dy, dx);
+    const speed = Math.min(
+      ENEMY_CONFIG.bullet.speedMax,
+      (ENEMY_CONFIG.bullet.speedBase + game.state.danger * ENEMY_CONFIG.bullet.speedDangerStep) * pattern.speedScale
+    );
+    const radius = ENEMY_CONFIG.bullet.radius * pattern.radiusScale;
+
+    for (const offset of pattern.angles) {
+      const angle = baseAngle + (offset * Math.PI) / 180;
+      game.enemyBullets.push(new Projectile({
+        x: this.x,
+        y: this.y + this.height * ENEMY_CONFIG.bullet.spawnYOffsetRatio,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius,
+        damage: Enemy.bulletDamage(this.bulletLevel, game.state.danger),
+        color: ENEMY_CONFIG.bullet.color,
+        hostile: true,
+        level: this.bulletLevel,
+        life: ENEMY_CONFIG.bullet.life,
+      }));
+    }
+  }
+
   fireBossPattern(game) {
     this.fireAt(game.player, game.state.danger, game);
     const spread = this.role === "boss" ? ENEMY_CONFIG.bossPattern.bossSpreadAngles : ENEMY_CONFIG.bossPattern.midBossSpreadAngles;
@@ -330,6 +390,44 @@ class Enemy {
         hostile: true,
         level: bulletLevel,
         life: ENEMY_CONFIG.bossPattern.life,
+      }));
+    }
+  }
+
+  fireBossCurtain(game) {
+    const pattern = ENEMY_CONFIG.bossPattern;
+    for (const offsetX of pattern.curtainOffsets) {
+      game.enemyBullets.push(new Projectile({
+        x: this.x + offsetX,
+        y: this.y + this.height * pattern.spawnYOffsetRatio,
+        vx: 0,
+        vy: pattern.curtainSpeed,
+        radius: pattern.curtainRadius,
+        damage: Enemy.bulletDamage(pattern.curtainLevel, game.state.danger),
+        color: pattern.bossColor,
+        hostile: true,
+        level: pattern.curtainLevel,
+        life: pattern.curtainLife,
+      }));
+    }
+  }
+
+  fireBossRing(game) {
+    const pattern = ENEMY_CONFIG.bossPattern;
+    const phase = this.phase * 0.35;
+    for (let index = 0; index < pattern.ringCount; index += 1) {
+      const angle = phase + index * ((Math.PI * 2) / pattern.ringCount);
+      game.enemyBullets.push(new Projectile({
+        x: this.x,
+        y: this.y,
+        vx: Math.cos(angle) * pattern.ringSpeed,
+        vy: Math.sin(angle) * pattern.ringSpeed,
+        radius: pattern.ringRadius,
+        damage: Enemy.bulletDamage(pattern.ringLevel, game.state.danger),
+        color: pattern.bossColor,
+        hostile: true,
+        level: pattern.ringLevel,
+        life: pattern.ringLife,
       }));
     }
   }
@@ -417,6 +515,7 @@ class Enemy {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
+    this.drawFormationLink(ctx);
     if (this.bossAi) {
       this.bossAi.draw(ctx);
       ctx.restore();
@@ -424,6 +523,7 @@ class Enemy {
     }
 
     if (this.drawSprite(ctx)) {
+      this.drawFormationBadge(ctx);
       this.drawRoleOverlay(ctx);
       ctx.restore();
       return;
@@ -443,7 +543,54 @@ class Enemy {
     else if (this.role === "splitter") this.drawFighter(ctx);
     else this.drawFighter(ctx);
 
+    this.drawFormationBadge(ctx);
     this.drawRoleOverlay(ctx);
+    ctx.restore();
+  }
+
+  drawFormationLink(ctx) {
+    if (this.formation !== "train" || this.formationIndex <= 0) return;
+
+    const image = Enemy.trainCoupler();
+    const width = Math.max(10, this.hitRx * 0.55);
+    const height = Math.max(24, GAME_CONFIG.spawn.trainSpacingY * 0.78);
+    const y = this.hitRy * 0.55;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.68;
+    if (AssetLoader.ready(image)) {
+      ctx.drawImage(image, -width / 2, y, width, height);
+    } else {
+      ctx.strokeStyle = "rgba(126, 245, 255, 0.64)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(0, y + height);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawFormationBadge(ctx) {
+    if (this.formation !== "train") return;
+
+    const image = Enemy.trainNode();
+    const isLeader = this.formationIndex === 0;
+    const size = Math.max(13, Math.min(22, this.hitRx * (isLeader ? 1.1 : 0.92)));
+    const y = -this.hitRy * 0.08;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = isLeader ? 0.9 : 0.64;
+    if (AssetLoader.ready(image)) {
+      ctx.drawImage(image, -size / 2, y - size / 2, size, size);
+    } else {
+      ctx.fillStyle = isLeader ? "rgba(255, 239, 154, 0.82)" : "rgba(126, 245, 255, 0.64)";
+      ctx.beginPath();
+      ctx.ellipse(0, y, size * 0.38, size * 0.38, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 

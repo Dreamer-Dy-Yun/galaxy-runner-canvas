@@ -150,6 +150,8 @@ class Game {
 
   spawnEnemy() {
     const danger = this.state.danger;
+    if (this.trySpawnEnemyTrain(danger)) return;
+
     const extraOneChance = clampNumber(
       (danger - GAME_CONFIG.spawn.extraOneDangerStart) * GAME_CONFIG.spawn.extraOneChanceStep,
       0,
@@ -165,6 +167,41 @@ class Game {
     for (let i = 0; i < count; i += 1) {
       this.registerEnemy(new Enemy(danger, this.pickEnemyRole(danger)));
     }
+  }
+
+  trySpawnEnemyTrain(danger) {
+    if (this.state.time < GAME_CONFIG.spawn.trainStartTime) return false;
+
+    const chance = clampNumber(
+      GAME_CONFIG.spawn.trainChanceBase + danger * GAME_CONFIG.spawn.trainChanceDangerStep,
+      0,
+      GAME_CONFIG.spawn.trainChanceMax
+    );
+    if (Math.random() >= chance) return false;
+
+    const count = Math.floor(randomRange(GAME_CONFIG.spawn.trainMinCount, GAME_CONFIG.spawn.trainMaxCount + 1));
+    const role = Math.random() < 0.62 ? "scout" : "fighter";
+    const x = randomRange(ENEMY_CONFIG.spawn.xPadding, PLAYFIELD.width - ENEMY_CONFIG.spawn.xPadding);
+    const driftX = randomRange(-GAME_CONFIG.spawn.trainDriftX, GAME_CONFIG.spawn.trainDriftX);
+    const velocityY = randomRange(GAME_CONFIG.spawn.trainSpeedYMin, GAME_CONFIG.spawn.trainSpeedYMax) +
+      danger * GAME_CONFIG.spawn.trainDangerSpeedStep;
+    const centerOffset = (count - 1) / 2;
+
+    for (let index = 0; index < count; index += 1) {
+      this.registerEnemy(
+        new Enemy(danger, role, {
+          x: x + Math.sin(index * 0.92) * GAME_CONFIG.spawn.trainSpacingX,
+          y: -GAME_CONFIG.spawn.trainStartYOffset - index * GAME_CONFIG.spawn.trainSpacingY,
+          velocityX: driftX + (index - centerOffset) * 2,
+          velocityY,
+          formation: "train",
+          formationIndex: index,
+          formationCount: count,
+        })
+      );
+    }
+
+    return true;
   }
 
   pickEnemyRole(danger) {

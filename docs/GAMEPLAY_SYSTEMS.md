@@ -333,9 +333,10 @@ Date: 2026-05-10
 - Player incoming health damage uses shield absorption first, then a 3-layer profile: outer flat reduction, percent reduction, inner flat reduction.
 - Player defense profiles are tied to the active ship/weapon identity: Rapid is fragile, Spread is balanced, Energy is defensive, and Nova is armored.
 - Rapid normal fire is a narrow pulse laser. Rapid special remains the wider sustained beam.
-- Rapid normal hit damage scales gradually from 20 at level 1 to 40 at level 10.
+- Rapid normal hit damage scales gradually from 25 at level 1 to 50 at level 10.
 - Energy normal and special projectiles use the same enlarged hit radius for damage and enemy bullet absorption so the visible orb reads as a usable barrier.
 - Energy normal damage scaling is weighted toward later levels so it remains relevant after armor values rise.
+- Spread normal hit damage scales gradually to about 37 per projectile at level 10, while the fan angle starts slightly inward so the forward lane is covered without changing projectile count.
 - Nova normal fire leans into high single-hit damage with stronger level scaling for radius, blast radius, and blast duration.
 
 ## Opening pacing and item drops
@@ -346,3 +347,12 @@ Date: 2026-05-10
 - Random field item generation is less frequent.
 - Enemy kills can drop items at the enemy position if the field item cap allows it.
 - Midboss and boss kills always attempt an item drop.
+
+## Enemy and boss pattern variety
+
+- Standard shooter enemies can use role-specific firing patterns instead of always shooting one aimed bullet.
+- Strikers, raiders, splitters, tanks, and guardians can fire small aimed spreads.
+- After the opening, some spawns can appear as train formations: several scouts or fighters enter in a connected vertical line with shared drift and speed.
+- Train formations draw connector and command-node SVG overlays so linked enemies read as one convoy without replacing the existing enemy atlas.
+- Stage bosses mix their focus attack with spread, curtain, ring, lance, or summon behavior depending on the stage profile.
+- Stage bosses draw small pattern glyph SVGs in the exposed core for curtain, ring, lance, and summon patterns.

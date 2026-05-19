@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Boss lance shot pattern">
+  <defs>
+    <linearGradient id="lance" x1="32" y1="4" x2="32" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.38" stop-color="#ff92c9"/>
+      <stop offset="1" stop-color="#ff3d67" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="glow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="2.6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="6" y="6" width="52" height="52" rx="14" fill="#10091a" opacity="0.54"/>
+  <g filter="url(#glow)">
+    <path d="M32 5 L43 27 L35 27 L39 59 L32 51 L25 59 L29 27 L21 27 Z" fill="url(#lance)"/>
+    <path d="M18 34 H46 M22 43 H42" stroke="#ffef9a" stroke-width="2.4" stroke-linecap="round" opacity="0.78"/>
+    <circle cx="32" cy="25" r="5.5" fill="#ffffff" opacity="0.86"/>
+  </g>
+</svg>

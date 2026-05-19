@@ -12,6 +12,8 @@ class BossAi {
     this.summonedThisFocus = false;
     this.aimX = null;
     this.aimY = null;
+    this.patternIndex = 0;
+    this.lastPattern = this.profile.attack;
   }
 
   static profile(stage) {
@@ -27,6 +29,11 @@ class BossAi {
   static core(stage) {
     const src = ENEMY_CONFIG.stageBoss.coreSrcByStage[stage] ?? ENEMY_CONFIG.stageBoss.coreSrcByStage[1];
     return AssetLoader.image(src);
+  }
+
+  static patternGlyph(pattern) {
+    const src = ENEMY_CONFIG.stageBoss.patternGlyphSrc[pattern];
+    return src ? AssetLoader.image(src) : null;
   }
 
   applyStats() {
@@ -85,17 +92,42 @@ class BossAi {
   }
 
   firePattern(game) {
+    this.patternIndex += 1;
+
     if (this.profile.attack === "lance") {
-      this.enemy.fireSniperShot(game);
+      if (this.patternIndex % 2 === 0) {
+        this.lastPattern = "ring";
+        this.enemy.fireBossRing(game);
+      } else {
+        this.lastPattern = "lance";
+        this.enemy.fireSniperShot(game);
+      }
       return;
     }
 
     if (this.profile.attack === "summon" && !this.summonedThisFocus) {
       this.summonedThisFocus = true;
+      this.lastPattern = "summon";
       game.spawnEnemyChildren(this.enemy, ENEMY_CONFIG.splitter.childRole, ENEMY_CONFIG.splitter.childCount + 1);
+      return;
     }
 
-    this.enemy.fireBossPattern(game);
+    if (this.profile.attack === "summon" && this.patternIndex % 3 === 0) {
+      this.lastPattern = "curtain";
+      this.enemy.fireBossCurtain(game);
+      return;
+    }
+
+    if (this.patternIndex % 3 === 0) {
+      this.lastPattern = "ring";
+      this.enemy.fireBossRing(game);
+    } else if (this.patternIndex % 2 === 0) {
+      this.lastPattern = "curtain";
+      this.enemy.fireBossCurtain(game);
+    } else {
+      this.lastPattern = "focus";
+      this.enemy.fireBossPattern(game);
+    }
   }
 
   isVulnerable() {
@@ -132,6 +164,7 @@ class BossAi {
     ctx.stroke();
 
     this.drawCore(ctx, core);
+    this.drawPatternGlyph(ctx);
     if (this.isVulnerable()) this.drawFocusWarning(ctx);
     this.drawArmorPanel(ctx, -1, damaged);
     this.drawArmorPanel(ctx, 1, damaged);
@@ -152,6 +185,34 @@ class BossAi {
       ctx.beginPath();
       ctx.ellipse(0, 0, core.width * 0.32, core.height * 0.36, 0, 0, Math.PI * 2);
       ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawPatternGlyph(ctx) {
+    if (this.phase !== "focus") return;
+
+    const image = BossAi.patternGlyph(this.lastPattern);
+    if (!image) return;
+
+    const glyph = ENEMY_CONFIG.stageBoss.patternGlyph;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = glyph.alpha * this.armorOpenRatio;
+    if (AssetLoader.ready(image)) {
+      ctx.drawImage(
+        image,
+        -glyph.width / 2,
+        -glyph.height / 2 + glyph.offsetY,
+        glyph.width,
+        glyph.height
+      );
+    } else {
+      ctx.strokeStyle = this.profile.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, glyph.offsetY, glyph.width * 0.32, glyph.height * 0.32, 0, 0, Math.PI * 2);
+      ctx.stroke();
     }
     ctx.restore();
   }
