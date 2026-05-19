@@ -218,8 +218,16 @@ class Game {
     return this.bossCount > 0;
   }
 
-  spawnItem() {
-    this.world.add(EntityGroups.collectibles, new CollectibleItem(CollectibleItem.pickKind(this.player)));
+  spawnItem(options = {}) {
+    const item = new CollectibleItem(options.kind ?? CollectibleItem.pickKind(this.player));
+    if (Number.isFinite(options.x)) {
+      item.x = clampNumber(options.x, item.bouncePadding, PLAYFIELD.width - item.bouncePadding);
+    }
+    if (Number.isFinite(options.y)) {
+      item.y = clampNumber(options.y, item.bouncePadding, PLAYFIELD.height - item.bouncePadding);
+    }
+    this.world.add(EntityGroups.collectibles, item);
+    return item;
   }
 
   nearestEnemy(x, y) {
@@ -587,6 +595,7 @@ class Game {
     SpecialSystem.awardKill(this.player, enemy);
     this.state.kills += 1;
     this.state.score += Game.enemyScore(enemy, this.state.danger);
+    this.dropItemFromEnemy(enemy);
     if (enemy.role === "splitter") this.spawnEnemyChildren(enemy);
     if (enemy.role === "boss") this.advanceStage();
     this.burst(
@@ -599,6 +608,30 @@ class Game {
     );
     EntityStore.removeAtUnordered(this.enemies, index);
     return true;
+  }
+
+  dropItemFromEnemy(enemy) {
+    if (this.items.length >= GAME_CONFIG.items.maxOnField) return false;
+
+    const chance = Game.enemyItemDropChance(enemy, this.state.danger);
+    if (Math.random() > chance) return false;
+
+    this.spawnItem({ x: enemy.x, y: enemy.y });
+    return true;
+  }
+
+  static enemyItemDropChance(enemy, danger = 0) {
+    if (enemy.role === "boss") return GAME_CONFIG.items.bossDropChance;
+    if (enemy.role === "midboss") return GAME_CONFIG.items.midBossDropChance;
+
+    const eliteBonus = enemy.maxHealth > GAME_CONFIG.enemyDestruction.eliteHealthThreshold
+      ? GAME_CONFIG.items.eliteDropBonus
+      : 0;
+    return clampNumber(
+      GAME_CONFIG.items.dropChanceBase + danger * GAME_CONFIG.items.dropChanceDangerStep + eliteBonus,
+      0,
+      GAME_CONFIG.items.dropChanceMax
+    );
   }
 
   updateParticles(dt) {

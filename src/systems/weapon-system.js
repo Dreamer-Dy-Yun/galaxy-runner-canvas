@@ -87,7 +87,11 @@ class WeaponSystem {
     if (kind === "energy") {
       return {
         radius: WeaponCatalog.projectileRadius("energy", level),
-        damage: WeaponSystem.scaledWeaponDamage(player, "energy", 2.4 + level * 1.35),
+        damage: WeaponSystem.scaledWeaponDamage(
+          player,
+          "energy",
+          2.6 + level * 1.65 + Math.max(0, level - 6) * 0.45
+        ),
         speed: -500,
         color: "#55f0ff",
         kind: "energy",
@@ -113,7 +117,7 @@ class WeaponSystem {
     if (kind === "rapid") {
       return {
         radius: 4.5,
-        damage: WeaponSystem.scaledWeaponDamage(player, "rapid", 1 + Math.floor((level - 1) / 5)),
+        damage: 20 + Math.max(0, level - 1) * (20 / 9),
         speed: WeaponCatalog.projectileSpeed("rapid"),
         color: "#ffe06a",
         kind: "rapid",

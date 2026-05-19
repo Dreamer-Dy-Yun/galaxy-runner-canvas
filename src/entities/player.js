@@ -438,7 +438,7 @@ class Player {
       if (remainingDamage <= 0) return;
     }
 
-    const finalDamage = Math.max(0, remainingDamage - this.totalDefense());
+    const finalDamage = this.resolveIncomingDamage(remainingDamage);
     if (finalDamage <= 0) {
       this.invincible = PLAYER_CONFIG.invincibility.shieldAbsorb;
       game.burst(this.x, this.y, "#d8e6f0", 12);
@@ -491,8 +491,31 @@ class Player {
     return this.shieldDefenseLevel * BALANCE.shieldDefensePerLevel;
   }
 
+  defenseProfile() {
+    const kind = this.activeWeaponKind() || "default";
+    return PLAYER_DEFENSE_CONFIG[kind] || PLAYER_DEFENSE_CONFIG.default;
+  }
+
+  defenseStats() {
+    const profile = this.defenseProfile();
+    return {
+      outerFlat: Math.max(0, (profile.outerFlat || 0) + this.shipDefense()),
+      percent: clampNumber(profile.percent || 0, 0, 0.85),
+      innerFlat: Math.max(0, (profile.innerFlat || 0) + this.shieldDefense()),
+    };
+  }
+
+  resolveIncomingDamage(rawDamage) {
+    const defense = this.defenseStats();
+    const afterOuter = Math.max(0, rawDamage - defense.outerFlat);
+    const afterPercent = afterOuter * (1 - defense.percent);
+    if (afterPercent <= 0) return 0;
+    return Math.max(1, afterPercent - defense.innerFlat);
+  }
+
   totalDefense() {
-    return Math.min(BALANCE.totalDefenseMax, this.shipDefense() + this.shieldDefense());
+    const defense = this.defenseStats();
+    return Math.min(BALANCE.totalDefenseMax, defense.outerFlat + defense.innerFlat);
   }
 
   draw(ctx, time) {

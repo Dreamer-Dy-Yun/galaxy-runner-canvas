@@ -9,17 +9,23 @@
 
 ## 핵심 규칙
 
-### Flat armor
+### Layered armor
 
-피해 공식은 1차로 단순하게 둔다.
+피해 공식은 3단 방어 모델을 기준으로 둔다.
 
 ```txt
-effectiveDamage = max(1, rawDamage - armor)
+rawDamage
+-> outer flat reduction
+-> percent reduction
+-> inner flat reduction
+-> finalDamage
 ```
 
-- Rapid처럼 작은 피해를 빠르게 넣는 무기는 armor 높은 적에게 약하다.
+- 적은 같은 모델을 쓰되 outer flat은 0으로 둔다.
+- 플레이어는 기체/무기 특성에 따라 outer flat, percent, inner flat을 모두 가진다.
+- Rapid처럼 작은 피해를 빠르게 넣는 무기는 inner flat이 높은 적에게 약하다.
 - Nova처럼 한 방 피해가 큰 무기는 armor 높은 적에게 강하다.
-- 체력이 낮고 armor가 높은 적은 약한 다단히트에 내성이 있지만 강한 단발에는 취약하다.
+- 체력이 낮고 inner flat이 높은 적은 약한 다단히트에 내성이 있지만 강한 단발에는 취약하다.
 
 ## 무기 정체성
 

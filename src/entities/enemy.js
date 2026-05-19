@@ -86,6 +86,7 @@ class Enemy {
     this.health = Math.max(ENEMY_CONFIG.health.minimum, Math.round(stats.health(danger) * healthScale * BALANCE.statScale));
     this.maxHealth = this.health;
     this.armor = Math.max(0, Math.round(Number(stats.armor) || 0));
+    this.damageReduction = clampNumber(Number(stats.damageReduction) || 0, 0, 0.85);
     this.velocityX = stats.velocityX(danger);
     this.velocityY = stats.velocityY(danger);
     this.color = stats.color;
@@ -388,9 +389,16 @@ class Enemy {
       }
     }
 
-    const effectiveDamage = Math.max(1, remainingDamage - (this.armor || 0));
+    const effectiveDamage = this.resolveIncomingDamage(remainingDamage);
     this.health -= effectiveDamage;
     return { damage: effectiveDamage, blocked: false, color: options.color ?? this.color, burst: options.burst ?? 5 };
+  }
+
+  resolveIncomingDamage(rawDamage) {
+    const afterOuter = Math.max(0, rawDamage);
+    const afterPercent = afterOuter * (1 - (this.damageReduction || 0));
+    if (afterPercent <= 0) return 0;
+    return Math.max(1, afterPercent - (this.armor || 0));
   }
 
   isStageBossVulnerable() {

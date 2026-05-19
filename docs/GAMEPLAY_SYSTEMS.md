@@ -39,9 +39,9 @@ Date: 2026-05-10
 - Each armor pickup adds 20 max HP.
 - Repair restores 35 HP.
 - Enemy bullet damage no longer uses `statScale`.
-- Enemy bullet level 1 starts at 10 damage.
-- Each enemy bullet level adds 5 damage.
-- Enemy bullet danger scaling adds 1 damage per 5 danger levels.
+- Enemy bullet level 1 starts at 13 damage.
+- Each enemy bullet level adds 6 damage.
+- Enemy bullet danger scaling adds 2 damage per 5 danger levels.
 - Danger is capped at 18.
 - Normal enemy collision damage is 28.
 - Boss collision damage is 42.
@@ -325,9 +325,24 @@ Date: 2026-05-10
 ## Weapon and armor redesign
 
 - Player weapon damage uses `BALANCE.weaponDamageMultiplier` on top of the base stat scale.
-- Enemy roles can define flat `armor`.
-- Enemy HP damage uses `max(1, rawDamage - armor)` after any Guardian shield absorption.
+- Enemy roles use the same 3-layer defense model with outer flat fixed at 0, role-specific percent reduction, and inner flat armor.
+- Enemy HP damage uses percent reduction and inner armor after any Guardian shield absorption.
 - This makes low-damage rapid hits weak against armored enemies while high-damage Energy and Nova hits remain effective.
+- Enemy bullet damage is raised so player defense profiles matter without reducing base player HP.
+- Player health remains at 100.
+- Player incoming health damage uses shield absorption first, then a 3-layer profile: outer flat reduction, percent reduction, inner flat reduction.
+- Player defense profiles are tied to the active ship/weapon identity: Rapid is fragile, Spread is balanced, Energy is defensive, and Nova is armored.
 - Rapid normal fire is a narrow pulse laser. Rapid special remains the wider sustained beam.
+- Rapid normal hit damage scales gradually from 20 at level 1 to 40 at level 10.
 - Energy normal and special projectiles use the same enlarged hit radius for damage and enemy bullet absorption so the visible orb reads as a usable barrier.
+- Energy normal damage scaling is weighted toward later levels so it remains relevant after armor values rise.
 - Nova normal fire leans into high single-hit damage with stronger level scaling for radius, blast radius, and blast duration.
+
+## Opening pacing and item drops
+
+- The opening spawn timer starts positive so the first enemy wave is delayed briefly instead of spawning immediately.
+- Base enemy spawn interval is longer during the opening, while danger scaling still makes later waves denser.
+- Enemy vertical speeds are reduced so enemies stay on screen longer and weapon identity is easier to read.
+- Random field item generation is less frequent.
+- Enemy kills can drop items at the enemy position if the field item cap allows it.
+- Midboss and boss kills always attempt an item drop.
