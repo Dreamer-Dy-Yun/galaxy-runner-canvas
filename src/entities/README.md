@@ -1,0 +1,19 @@
+# src/entities
+
+## 역할
+
+`src/entities`는 게임 world에 배치되는 객체의 상태와 객체 단위 동작을 담당한다.
+
+## 파일 책임
+
+- `player.js`: 플레이어 상태, 무기 보유/업그레이드, 이동/발사 호출, 방어/쉴드/드론 상태, 플레이어 시각 composition 진입점.
+- `enemy.js`: 일반 적, 특수 적, 중간 보스, 스테이지 보스 entity 상태와 공격/발사/렌더 프레임.
+- `projectile.js`: 플레이어/적 투사체 상태, 이동, 수명, hit interval, hit radius, homing/follow/beam/mine 계약. 렌더링은 `src/renderers/projectile-*.js`에 위임한다.
+- `collectible-item.js`: 필드 아이템 생성, morph, bounce, pickup 대상 종류.
+- `burst-particle.js`, `nova-explosion.js`: 짧은 수명 visual/effect entity.
+
+## 경계
+
+- entity는 자기 상태와 객체 단위 규칙만 가진다.
+- stage 진행, 점수, spawn budget, 전체 collision loop는 `Game` 또는 system 계층의 책임이다.
+- 한 entity가 내부 catalog 값을 만들면 안 되며, 필요한 값은 `src/gameplay` 계약에서 받아야 한다.

@@ -88,7 +88,7 @@ class Player {
     SpecialSystem.update(this, dt, game);
     const specialDown = SpecialSystem.isSpecialDown(game.input);
 
-    if (!specialDown && game.input.isDown("Space") && this.fireTimer <= 0) {
+    if (!specialDown && game.input.isDown("fire") && this.fireTimer <= 0) {
       if (this.spreadLevel > 0) {
         this.fireSpread(game);
       } else {
@@ -122,12 +122,8 @@ class Player {
   }
 
   move(dt, input) {
-    let mx = 0;
-    let my = 0;
-    if (input.isDown("ArrowLeft") || input.isDown("KeyA")) mx -= 1;
-    if (input.isDown("ArrowRight") || input.isDown("KeyD")) mx += 1;
-    if (input.isDown("ArrowUp") || input.isDown("KeyW")) my -= 1;
-    if (input.isDown("ArrowDown") || input.isDown("KeyS")) my += 1;
+    const mx = input.axis("moveLeft", "moveRight");
+    const my = input.axis("moveUp", "moveDown");
 
     this.moveX = mx;
     this.moveY = my;

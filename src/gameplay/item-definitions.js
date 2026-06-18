@@ -71,6 +71,7 @@ const SUPPORT_ITEM_DEFINITIONS = Object.freeze({
   shieldDefense: { color: "#9af8ff", weight: 0.13, radius: 17, iconSrc: itemIconSrc("shieldDefense") },
   drone: { color: "#b4a2ff", weight: 0.13, radius: 17, iconSrc: itemIconSrc("drone") },
   bonus: { color: "#ff92c9", weight: 0.08, radius: 15, iconSrc: itemIconSrc("bonus") },
+  weaponCore: { color: "#f6fbff", weight: 0, radius: 15, iconSrc: itemIconSrc("weaponCore"), spawnable: false },
 });
 
 const ITEM_DEFINITIONS = Object.freeze({

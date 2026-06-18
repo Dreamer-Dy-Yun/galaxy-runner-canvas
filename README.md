@@ -48,13 +48,13 @@ Play here:
 assets/      Game images and generated visual assets
 docs/        Current gameplay and asset specifications
 mulAg/       Multi-agent governance docs (PLAN/TODO/REVIEW/DONE)
-src/core/    Shared low-level utilities
+src/core/    Legacy script entrypoints and primitive helpers
 src/engine/  Game loop, input, world orchestration
 src/entities Runtime game objects
 src/gameplay Config, catalogs, game info data
-src/renderers Canvas render helpers
-src/systems  Gameplay systems such as weapons, drones, specials, boss AI
-src/ui       HUD and developer UI
+src/renderers Canvas render helpers and scene draw order
+src/systems  Gameplay orchestration such as session, loop, spawn, projectiles, enemies, items, specials
+src/ui       HUD, pause overlay, and game information UI
 ```
 
 ## Development notes
@@ -62,7 +62,7 @@ src/ui       HUD and developer UI
 - The game is a static site. No build step is required.
 - Open `galaxy-runner.html` locally or use GitHub Pages.
 - Runtime tuning should live in `src/gameplay/game-config.js`.
-- Weapon identity and progression should live in `src/gameplay/weapon-catalog.js`.
+- Weapon identity and progression data should live in `src/gameplay/weapon-definitions.js`; callers should use `WeaponCatalog`.
 - Keep `docs/GAMEPLAY_SYSTEMS.md` aligned with current gameplay direction.
 
 ## Multi-agent operation guide

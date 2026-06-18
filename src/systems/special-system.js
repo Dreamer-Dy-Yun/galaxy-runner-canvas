@@ -3,7 +3,7 @@
 
 class SpecialSystem {
   static isSpecialDown(input) {
-    return SPECIAL_CONFIG.inputCodes.some((code) => input.isDown(code));
+    return input.isDown("special");
   }
 
   static update(player, dt, game) {

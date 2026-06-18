@@ -40,7 +40,8 @@ class CollectibleItem {
   }
 
   static availableDefinitions(player = null, category = null, excludeKind = null) {
-    return Object.entries(ITEM_DEFINITIONS).filter(([kind]) => {
+    return Object.entries(ITEM_DEFINITIONS).filter(([kind, item]) => {
+      if (item.spawnable === false || item.weight <= 0) return false;
       if (category && itemCategory(kind) !== category) return false;
       if (kind === excludeKind) return false;
       if (kind === "shield") return !player || player.maxShield < BALANCE.shieldMax;

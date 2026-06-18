@@ -104,7 +104,7 @@ Date: 2026-05-10
 
 ## Weapon catalog
 
-- Weapon identity and weapon-specific tuning are owned by `src/gameplay/weapon-catalog.js`.
+- Weapon identity and weapon-specific tuning data are owned by `src/gameplay/weapon-definitions.js`.
 - The catalog owns weapon kind, label, item color, item drop weight, max level, core max level, core damage bonus, projectile speed, projectile damage multiplier, movement profile, visual footprint, hitbox footprint, HUD icon name, and final-form asset naming.
 - Systems read from `WeaponCatalog` instead of owning weapon-specific constants.
 - Adding a future weapon should start with a new catalog entry, then only add unique firing/rendering behavior if the existing systems cannot express it.
@@ -151,7 +151,7 @@ Date: 2026-05-10
 
 ## TODO-002 (게임플레이 계약 정합성 정리)
 
-- `src/gameplay/weapon-catalog.js`와 `src/gameplay/item-definitions.js`는 런타임 계약을 방어적으로 검증한다.
+- `src/gameplay/weapon-definition.js`, `src/gameplay/weapon-definitions.js`, `src/gameplay/weapon-catalog.js`, `src/gameplay/item-definitions.js`는 런타임 계약을 방어적으로 검증하거나 노출한다.
   - 무기/아이템 정의의 필수 필드 누락, 잘못된 타입, 빈/중복 kind에 대해 경고를 1회 출력한다.
   - 계약 불일치 시 기본 동작은 최소 안전 동작(fallback)으로 수렴하며, UI가 임의의 임시 텍스트/아이콘 값을 생성하지 않도록 한다.
 - `src/gameplay/game-config.js`는 `SPECIAL_CONFIG.tierCosts`를 정합성 검사하고 정규화한다.
@@ -291,13 +291,13 @@ Date: 2026-05-10
 - Enemy bullets are blocked only when their bullet level is equal to or lower than the Energy bullet absorb level.
 - Normal Energy absorb level is 1 at weapon levels 1-4, 2 at levels 5-9, and 3 at level 10.
 - Energy special barrier orbs have their own absorb levels and can block stronger enemy bullets at higher tiers.
-- Absorb tuning is owned by `src/gameplay/weapon-catalog.js`.
+- Absorb tuning is owned by `src/gameplay/weapon-definitions.js` and exposed through `WeaponCatalog`.
 
 ## Energy and Nova projectile size
 
 - Energy normal projectile radius grows by 10% per weapon level.
 - Nova normal projectile radius grows by 10% per weapon level.
-- Projectile size tuning is owned by `src/gameplay/weapon-catalog.js`.
+- Projectile size tuning is owned by `src/gameplay/weapon-definitions.js` and exposed through `WeaponCatalog`.
 
 ## Rapid ship footprint
 
