@@ -6,7 +6,7 @@ P1 상태 전이와 classic global 제공 순서를 자동 회귀 테스트로 �
 
 ## 참조 plan
 
-`mulAg/md/plan/active/PLAN-2026-07-16-p1-p2-hardening.md`
+`mulAg/md/plan/PLAN-2026-07-16-p1-p2-hardening.md`
 
 ## 작업 범위
 

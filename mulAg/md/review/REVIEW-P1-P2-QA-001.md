@@ -6,7 +6,7 @@
 
 ## 참조 plan / todo
 
-- `mulAg/md/plan/active/PLAN-2026-07-16-p1-p2-hardening.md`
+- `mulAg/md/plan/PLAN-2026-07-16-p1-p2-hardening.md`
 - `mulAg/md/todo/TODO-P1-P2-QA-001.md`
 - 구현 근거: `REVIEW-P1-RUN-CONTRACT-001.md`, `REVIEW-P1-CONTRACT-TESTS-001.md`, `REVIEW-P2-UX-FEEDBACK-001.md`, `REVIEW-P2-CAPACITY-001.md`
 

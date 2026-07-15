@@ -3,7 +3,7 @@
 ## 기준
 
 - 작업 TODO: `mulAg/md/todo/TODO-P1-CONTRACT-TESTS-001.md`
-- 상위 plan: `mulAg/md/plan/active/PLAN-2026-07-16-p1-p2-hardening.md`
+- 상위 plan: `mulAg/md/plan/PLAN-2026-07-16-p1-p2-hardening.md`
 - 시작 기준: `main`, `HEAD a1f768e`
 - production, HTML, package, workflow는 이 TODO에서 읽기 전용으로 확인했다.
 

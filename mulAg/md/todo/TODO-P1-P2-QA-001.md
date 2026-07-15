@@ -6,7 +6,7 @@
 
 ## 참조 plan
 
-`mulAg/md/plan/active/PLAN-2026-07-16-p1-p2-hardening.md`
+`mulAg/md/plan/PLAN-2026-07-16-p1-p2-hardening.md`
 
 ## 작업 범위
 

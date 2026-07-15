@@ -21,7 +21,8 @@
 - Phase 4 blur/visibility 복구·status 관측·seeded browser soak: 완료.
 - Phase 5 독립 계약/브라우저 QA: 최초 발견 3건을 교정한 뒤 최종 PASS.
 - 로컬 gate: `test:run` 51/51, build 158 files, browser smoke, 12초 soak PASS.
-- 남은 단계: implementation commit/push, Pages workflow, live URL을 분리 검증하고 lifecycle 문서를 마감한다.
+- implementation 배포: commit `5b95c0c27192722c82159ae3967022c4302f05de`, Pages run `29433283218` success, live URL과 오류 0건 확인.
+- 남은 단계: lifecycle DONE 문서 커밋도 같은 Pages gate로 검증하고 최종 SHA/run을 인계한다.
 
 ## 범위와 제외
 
