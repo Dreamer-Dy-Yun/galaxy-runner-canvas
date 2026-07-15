@@ -6,7 +6,7 @@
 
 ## 참조 plan
 
-`mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+`mulAg/md/plan/PLAN-2026-07-15-runtime-hardening.md`
 
 ## 작업 범위
 
@@ -41,7 +41,7 @@
 - `galaxy-runner.html`
 - `galaxy-runner.css`
 - `assets/**`
-- `mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+- `mulAg/md/plan/PLAN-2026-07-15-runtime-hardening.md`
 
 ## 수정 금지 파일
 
@@ -71,7 +71,7 @@
 - [x] 2. 로컬 test/build/browser 검증을 통과시킨다.
 - [x] 3. Pages workflow가 동일 gate 후 `dist`를 배포하도록 갱신한다.
 - [x] 4. 문서와 review를 작성한다.
-- [ ] 5. 전체 diff를 QA한 뒤 commit/push/deploy하고 SHA 증거를 확인한다.
+- [x] 5. 전체 diff를 QA한 뒤 commit/push/deploy하고 SHA 증거를 확인한다.
 
 ## 완료 기준
 

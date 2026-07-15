@@ -6,7 +6,7 @@
 
 ## 참조 plan
 
-`mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+`mulAg/md/plan/PLAN-2026-07-15-runtime-hardening.md`
 
 ## 작업 범위
 
@@ -44,7 +44,7 @@
 - `assets/**`
 - `.github/workflows/pages.yml`
 - `README.md`
-- `mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+- `mulAg/md/plan/PLAN-2026-07-15-runtime-hardening.md`
 - `mulAg/md/roles/sub-agent.md`
 - `mulAg/md/roles/common-rules.md`
 - `mulAg/md/templates/review-template.md`

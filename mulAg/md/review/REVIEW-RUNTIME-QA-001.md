@@ -45,13 +45,18 @@
 - `corepack pnpm run test:browser`: debug off/on 두 시나리오 통과
 - `tests/browser-smoke.mjs` line count: 170줄, 300줄 제한 충족
 
-## 남은 배포 증거
+## 배포 증거
 
-- 최종 commit SHA와 `origin/main` SHA 일치
-- 해당 SHA로 실행된 `pages.yml` run URL과 성공 conclusion
-- Pages deployment environment가 보고한 URL
-- cache-busted live URL의 HTTP 성공과 실제 browser smoke
+- implementation commit: `04f3ebb86b61901cab830da949f65383daf3e647`
+- `main`과 `origin/main`: implementation push 직후 동일 SHA 확인
+- GitHub Actions: `pages.yml` run `29429074942`, conclusion success, deploy job 52초
+- run URL: `https://github.com/Dreamer-Dy-Yun/galaxy-runner-canvas/actions/runs/29429074942`
+- live root: `https://dreamer-dy-yun.github.io/galaxy-runner-canvas/?v=04f3ebb`가 `galaxy-runner.html`로 정상 연결
+- live browser: ready → running 거리 증가 → paused `396m` 고정 → resume `412m` 증가 → Restart 후 HP와 진행 초기화 확인
+- live `?debug=1`: frame/update/draw 실측 metric 표시 확인, browser console error `0`건
+- GitHub Deployments API는 `not-found`였으나 workflow success와 live browser 증거를 독립 확인했다.
+- lifecycle 문서 마감 커밋도 동일 Pages gate를 다시 통과해야 최종 완료로 인계한다.
 
 ## 판정
 
-**PASS (local gate).** 요구된 static/unit/build/browser 검증은 모두 통과했다. 실제 Pages 배포 증거는 commit/push 뒤 별도 기록한다.
+**PASS (deployed).** local gate, independent QA, implementation SHA의 GitHub Actions와 live Pages 검증을 모두 통과했다.

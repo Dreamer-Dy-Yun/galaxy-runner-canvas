@@ -69,5 +69,5 @@ Galaxy Runner가 현재 배포본에서 실제로 실행된다는 사실과 별�
 - 세 조사 패스가 서로 겹치지 않는 TODO와 review로 추적됐다.
 - 현재 실행 성공과 숨은 debug 순서 결합을 분리했다.
 - 사용자 영향, 회귀 가능성, 하드닝 위험을 분리했다.
-- 후속 구현 방향은 `mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`로 이관했다.
+- 후속 구현 방향은 `mulAg/md/plan/PLAN-2026-07-15-runtime-hardening.md`로 이관했고 기술적 P0 배포를 완료했다.
 - 코드 파일은 변경하지 않았다.

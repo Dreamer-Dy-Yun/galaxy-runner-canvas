@@ -6,7 +6,7 @@
 
 ## 참조 plan
 
-`mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+`mulAg/md/plan/PLAN-2026-07-15-runtime-hardening.md`
 
 ## 작업 범위
 
@@ -41,7 +41,7 @@
 - `tests/helpers/load-classic-scripts.mjs`
 - `tests/runtime-baseline.test.mjs`
 - `package.json`
-- `mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+- `mulAg/md/plan/PLAN-2026-07-15-runtime-hardening.md`
 
 ## 수정 금지 파일
 

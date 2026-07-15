@@ -17,7 +17,7 @@
 - Phase 1 자동 검증 기반: 완료, 독립 QA PASS.
 - Phase 2 canonical frame/observer: 최초 독립 QA FAIL 2건을 `TODO-RUNTIME-HARDEN-002A`로 보정 후 재QA PASS.
 - Phase 3 diagnostics observer 전환: 완료, 독립 QA PASS.
-- Phase 4 browser/Pages gate: 로컬 `test:run`, build, debug off/on browser smoke PASS. 실제 push, workflow, live URL 증거는 진행 중이다.
+- Phase 4 browser/Pages gate: 로컬과 GitHub Actions의 `test:run`, build, debug off/on browser smoke PASS. implementation commit과 live Pages 증거를 확인했다.
 - Phase 5와 기획/UX/대형 파일 분리는 이번 P0 배포 범위에서 제외하며 별도 사용자 결정과 TODO가 필요하다.
 
 ## 조사 기준 결론
@@ -68,7 +68,7 @@ FrameClock
 
 ### 승인 상태
 
-- 2026-07-15 사용자 요청 `계획 세워서 수정/배포까지`로 이번 active plan의 기술적 P0 범위 수정과 배포를 명시적으로 승인받았다.
+- 2026-07-15 사용자 요청 `계획 세워서 수정/배포까지`로 이 계획의 기술적 P0 범위 수정과 배포를 명시적으로 승인받았다.
 - 이번 실행 범위: Phase 1~4 및 관련 계약 문서 동기화.
 - 별도 보류: 시작 무기, Continue, 방어 최소 피해, UX/접근성, 300라인 초과 파일 분리, `Game` 위치 이동. 이 항목은 기술적 P0 배포에 섞지 않는다.
 - 배포 조건: 모든 로컬 검증과 독립 QA가 통과하고 의도한 diff만 남아야 한다.
