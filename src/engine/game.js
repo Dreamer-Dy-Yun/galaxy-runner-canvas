@@ -130,7 +130,9 @@ class Game {
   }
 
   update(dt) {
-    GameLoopSystem.update(this, dt);
+    const frameDelta = this.normalizeFrameDelta(dt);
+    this.frameDeltaSeconds = frameDelta;
+    GameLoopSystem.update(this, frameDelta);
   }
 
   updateProjectiles(dt, collisionContext = null) {
@@ -257,7 +259,9 @@ class Game {
   }
 
   draw(dt) {
-    GameSceneRenderer.draw(this.ctx, this, dt);
+    const frameDelta = this.normalizeFrameDelta(dt);
+    this.frameDeltaSeconds = frameDelta;
+    GameSceneRenderer.draw(this.ctx, this, frameDelta);
   }
 
   drawProjectiles() {
@@ -268,24 +272,15 @@ class Game {
     return EnemyLifecycleSystem.score(enemy, danger);
   }
 
-  frame(frameState = {}) {
-    if (!this.ctx || !this.state) {
-      return;
-    }
-
-    const dt = clampNumber(
-      Number.isFinite(frameState.deltaSeconds) ? frameState.deltaSeconds : 0,
+  normalizeFrameDelta(dt) {
+    return clampNumber(
+      Number.isFinite(dt) ? dt : 0,
       0,
       GAME_CONFIG.maxFrameDelta
     );
-    this.frameDeltaSeconds = dt;
-    try {
-      if (dt > 0) {
-        this.update(dt);
-      }
-      this.draw(dt);
-    } finally {
-      this.input?.endFrame?.();
-    }
+  }
+
+  afterFrame() {
+    this.input?.endFrame?.();
   }
 }

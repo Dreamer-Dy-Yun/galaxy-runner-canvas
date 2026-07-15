@@ -74,24 +74,43 @@
       surface,
       clock: new FrameClock({ maxDeltaSeconds: GAME_CONFIG.maxFrameDelta }),
     });
+    const frameProfiler = new FrameProfiler();
     const debugOverlay = new DebugOverlay({
       enabled: DebugOverlay.readEnabledFlag({ queryParam: "debug", storageKey: "galaxyRunner.debug" }),
       sceneManager,
       surface,
       getWorld: () => game.world,
+      profiler: frameProfiler,
     });
+    frameProfiler.attach({ runtime });
     debugOverlay.attach(runtime);
     globalThis.GalaxyRunnerDebug = debugOverlay;
-    const frameProfiler = new FrameProfiler();
-    frameProfiler.attach({
-      runtime,
-      scene: sceneManager,
-      surface,
-      debugOverlay,
-    });
     globalThis.GalaxyRunnerFrameProfiler = frameProfiler;
+    globalThis.GalaxyRunnerStatus = () => createStatusSnapshot({
+      game,
+      runtime,
+      debugOverlay,
+      frameProfiler,
+    });
 
     runtime.start();
+  }
+
+  function createStatusSnapshot({ game, runtime, debugOverlay, frameProfiler }) {
+    const profilerSnapshot = frameProfiler.snapshot();
+    return Object.freeze({
+      mode: typeof game.state?.mode === "string" ? game.state.mode : null,
+      distance: finiteOrNull(game.state?.distance),
+      score: finiteOrNull(game.state?.score),
+      hp: finiteOrNull(game.player?.health),
+      runtimeRunning: runtime.running === true,
+      debugEnabled: debugOverlay.enabled === true,
+      profilerSampleCount: finiteOrNull(profilerSnapshot.sampleCount),
+    });
+  }
+
+  function finiteOrNull(value) {
+    return Number.isFinite(value) ? value : null;
   }
 
   function warmupStartupAssets() {

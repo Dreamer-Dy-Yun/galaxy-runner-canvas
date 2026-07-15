@@ -35,13 +35,7 @@
 
     draw() {}
 
-    frame(frameState = {}) {
-      const dt = Number.isFinite(frameState.deltaSeconds) ? frameState.deltaSeconds : 0;
-      if (!this.paused && dt > 0) {
-        this.update(dt, frameState);
-      }
-      this.draw(dt, frameState);
-    }
+    afterFrame() {}
   }
 
   globalThis.Scene = Scene;

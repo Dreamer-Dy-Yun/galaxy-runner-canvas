@@ -11,31 +11,36 @@
       sceneManager = null,
       surface = null,
       getWorld = null,
+      profiler = null,
     } = {}) {
       this.enabled = enabled === true;
       this.runtime = runtime;
       this.sceneManager = sceneManager;
       this.surface = surface;
       this.getWorld = getWorld;
+      this.profiler = profiler;
       this.fps = 0;
       this.latestSnapshot = null;
       this.latestFrameState = null;
+      this.unsubscribe = null;
     }
 
     attach(runtime = this.runtime) {
-      if (!runtime || typeof runtime.frame !== "function") {
-        throw new TypeError("DebugOverlay.attach requires an EngineRuntime-like object");
+      if (!runtime || typeof runtime.subscribe !== "function") {
+        throw new TypeError("DebugOverlay.attach requires an observable EngineRuntime");
       }
-      if (runtime.__debugOverlayHook?.overlay === this) return this;
+      if (this.runtime === runtime && this.unsubscribe) return this;
+      if (this.unsubscribe) this.detach();
 
-      const originalFrame = runtime.frame.bind(runtime);
-      runtime.frame = (frameState = {}) => {
-        const result = originalFrame(frameState);
-        this.afterFrame(runtime.lastFrameState || frameState, runtime);
-        return result;
-      };
-      runtime.__debugOverlayHook = { overlay: this, originalFrame };
       this.runtime = runtime;
+      this.unsubscribe = runtime.subscribe(this);
+      return this;
+    }
+
+    detach() {
+      if (this.unsubscribe) this.unsubscribe();
+      this.unsubscribe = null;
+      this.runtime = null;
       return this;
     }
 
@@ -54,7 +59,9 @@
       return this.enabled;
     }
 
-    afterFrame(frameState = {}, runtime = this.runtime) {
+    afterFrame(event = {}) {
+      const frameState = event.frameState || {};
+      const runtime = event.runtime || this.runtime;
       this.latestFrameState = frameState;
       if (!this.enabled) return;
 
@@ -69,14 +76,15 @@
 
       const scene = this.resolveScene();
       const entityCounts = this.countEntities(this.resolveWorld(scene));
-      return {
+      return Object.freeze({
         fps: this.fps,
         deltaMs: deltaSeconds * 1000,
         running: runtime?.running === true,
         sceneName: this.sceneManager?.currentName || scene?.name || "none",
         sceneState: DebugOverlay.sceneStateLabel(scene),
         entityTotal: entityCounts.total,
-      };
+        profiler: this.readProfilerSnapshot(),
+      });
     }
 
     draw(ctx = this.resolveContext()) {
@@ -88,8 +96,14 @@
         `entities ${this.latestSnapshot.entityTotal}`,
         `scene ${this.latestSnapshot.sceneName}`,
         `state ${this.latestSnapshot.sceneState}`,
+        ...this.profilerRows(this.latestSnapshot.profiler),
       ];
-      const rect = { x: 10, y: 10, width: 172, height: 92 };
+      const rect = {
+        x: 10,
+        y: 10,
+        width: this.latestSnapshot.profiler ? 296 : 172,
+        height: 12 + rows.length * 16,
+      };
       const helper = globalThis.RenderHelpers;
 
       if (helper && typeof helper.fillPanel === "function" && typeof helper.fillTextRows === "function") {
@@ -108,6 +122,21 @@
         ctx.fillText(rows[index], rect.x + 10, rect.y + 10 + index * 16);
       }
       ctx.restore();
+    }
+
+    readProfilerSnapshot() {
+      if (!this.profiler || typeof this.profiler.snapshot !== "function") return null;
+      return this.profiler.snapshot();
+    }
+
+    profilerRows(snapshot) {
+      if (!snapshot) return [];
+      return [
+        DebugOverlay.formatMetric("frame", snapshot.frame),
+        DebugOverlay.formatMetric("update", snapshot.update),
+        DebugOverlay.formatMetric("draw", snapshot.draw),
+        `startup spikes ${snapshot.spikes?.length || 0}`,
+      ];
     }
 
     resolveContext() {
@@ -149,6 +178,13 @@
       if (scene.paused) return "paused";
       if (scene.active) return "active";
       return "ready";
+    }
+
+    static formatMetric(label, metric = {}) {
+      const avg = Number.isFinite(metric.avg) ? metric.avg : 0;
+      const p95 = Number.isFinite(metric.p95) ? metric.p95 : 0;
+      const max = Number.isFinite(metric.max) ? metric.max : 0;
+      return `${label} avg ${avg.toFixed(1)} p95 ${p95.toFixed(1)} max ${max.toFixed(1)}ms`;
     }
 
     static readEnabledFlag({ queryParam = "debug", storageKey = "" } = {}) {

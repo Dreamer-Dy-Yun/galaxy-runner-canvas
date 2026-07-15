@@ -62,7 +62,11 @@
     }
 
     update(dt, frameState = {}) {
-      if (this.currentScene && typeof this.currentScene.update === "function") {
+      if (
+        this.currentScene
+        && this.currentScene.paused !== true
+        && typeof this.currentScene.update === "function"
+      ) {
         this.currentScene.update(dt, frameState);
       }
     }
@@ -73,19 +77,10 @@
       }
     }
 
-    frame(frameState = {}) {
-      if (!this.currentScene) return;
-
-      if (typeof this.currentScene.frame === "function") {
-        this.currentScene.frame(frameState);
-        return;
+    afterFrame(dt, frameState = {}) {
+      if (this.currentScene && typeof this.currentScene.afterFrame === "function") {
+        this.currentScene.afterFrame(dt, frameState);
       }
-
-      const dt = Number.isFinite(frameState.deltaSeconds) ? frameState.deltaSeconds : 0;
-      if (dt > 0) {
-        this.update(dt, frameState);
-      }
-      this.draw(dt, frameState);
     }
   }
 

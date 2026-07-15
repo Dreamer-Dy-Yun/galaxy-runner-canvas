@@ -3,8 +3,9 @@
 ## 문서 상태
 
 - 작성일: 2026-05-18
-- 기준 작업: `mulAg/md/plan/PLAN-2026-05-18-engine-refactor.md`
-- 기준 TODO: `mulAg/md/todo/TODO-ENGINE-001.md`
+- 최근 계약 갱신: 2026-07-16
+- 기준 작업: `mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+- 기준 TODO: `mulAg/md/todo/TODO-RUNTIME-HARDEN-002.md`
 - 범위: 엔진 계약과 책임 경계 문서화
 - 제외 범위: 런타임 코드 분리, 자산 삭제, startup picker 제거, 무기/특수기 밸런스 변경
 
@@ -53,8 +54,9 @@ Scene은 엔진이 호출하는 실행 단위이며, 게임별 상태와 시스�
 ```ts
 interface Scene {
   enter(context): void;
-  update(frame): void;
-  draw(renderContext): void;
+  update(deltaSeconds, frameState): void;
+  draw(deltaSeconds, frameState): void;
+  afterFrame(deltaSeconds, frameState): void;
   exit(reason): void;
 }
 ```
@@ -64,9 +66,12 @@ interface Scene {
 | `enter` | `SceneManager` | scene-local 상태 초기화, 필요한 world/entity 구성, action 사용 준비 |
 | `update` | `EngineRuntime` | dt 기반 simulation, action snapshot 조회, spawn과 gameplay system 진행 |
 | `draw` | `EngineRuntime` | 현재 상태를 canvas에 그리기, persistent gameplay state 변경 금지 |
+| `afterFrame` | `EngineRuntime` | input transient와 frame-local 참조 정리 |
 | `exit` | `SceneManager` | timer, scene-local cache, 임시 entity 참조 정리 |
 
-기본 frame 순서는 `FrameClock tick`, input snapshot 생성, active scene `update`, world cleanup, canvas clear, active scene `draw`, debug overlay hook 순서로 본다. 후속 구현에서 성능 또는 pause 정책 때문에 순서를 바꿔야 하면 이 문서와 `src/engine/README.md`를 함께 갱신한다.
+기본 frame 순서는 `FrameClock tick`, `beforeFrame observer`, active scene `update`, `afterUpdate observer`, active scene `draw`, `afterDraw observer`, active scene `afterFrame`, `afterFrame observer`다. `EngineRuntime`이 이 순서를 유일하게 조립하며 Scene, SceneManager, Galaxy Runner Game은 별도 `frame()` 우회 경로를 갖지 않는다. 후속 구현에서 성능 또는 pause 정책 때문에 순서를 바꿔야 하면 이 문서와 `src/engine/runtime/README.md`, `src/engine/scenes/README.md`를 함께 갱신한다.
+
+`deltaSeconds`가 0이면 update는 생략하지만 draw와 afterFrame은 실행한다. scene update/draw가 실패해도 afterFrame에서 input transient cleanup을 시도하고 최초 scene 오류를 다시 던진다. cleanup도 함께 실패한 경우 최초 오류를 보존하고 후속 오류를 console에 표시한다.
 
 Scene 전환은 이전 scene의 `exit`이 끝난 뒤 다음 scene의 `enter`를 호출한다. `enter` 실패나 asset preload 실패는 성공처럼 감추지 않고 error state 또는 명시적 fallback scene으로 드러낸다.
 
@@ -142,9 +147,11 @@ Draw 단계에서 simulation state를 변경하지 않는 것을 기본 원칙�
 
 엔진 debug hook은 frame time, dt clamp, scene transition, input action 상태, entity count, collision pair count, asset load 상태 같은 공통 관측 지점을 제공한다.
 
+Runtime 계측은 `EngineRuntime.subscribe(observer)`의 `beforeFrame`, `afterUpdate`, `afterDraw`, `afterFrame` callback을 사용한다. 같은 observer identity는 한 번만 등록하며, 반환된 unsubscribe가 observer lifetime을 소유한다. observer 오류는 `onObserverError` 또는 console에 표시하되 gameplay와 다음 observer의 실행을 중단하지 않고 자동 해제하지 않는다. observer event와 frameState snapshot은 shallow read-only이며 실제 scene state를 변경하는 통로로 사용하지 않는다.
+
 Galaxy Runner debug 정보는 stage, danger, score, weapon tier, special meter, spawn budget처럼 게임 의미가 있는 값을 scene 또는 game system에서 label로 전달한다.
 
-Debug hook은 production gameplay 규칙을 바꾸면 안 된다. debug UI가 필요하면 engine hook과 game label을 결합하되, 계산 주체는 원래 책임 위치에 둔다.
+Debug hook은 production gameplay 규칙을 바꾸거나 runtime/scene 메서드를 교체하면 안 된다. debug UI가 필요하면 engine observer와 game label을 결합하되, 계산 주체는 원래 책임 위치에 둔다.
 
 ## 하드닝 완료 모듈 수정 규칙
 
