@@ -96,12 +96,6 @@ const GAME_CONFIG = Object.freeze({
   projectiles: Object.freeze({
     enemyHitPlayerRadiusScale: 0.72,
   }),
-  continue: Object.freeze({
-    mode: "running",
-    playerInvincibility: 2.4,
-    spawnGraceSeconds: 1.2,
-    itemGraceSeconds: 1.2,
-  }),
 });
 
 const INPUT_CONFIG = Object.freeze({
@@ -117,11 +111,14 @@ const INPUT_CONFIG = Object.freeze({
     "KeyA",
     "KeyS",
     "KeyD",
+    "KeyI",
     "KeyP",
     "KeyR",
+    "KeyX",
     "Escape",
   ]),
   pauseCodes: Object.freeze(["KeyP", "Escape"]),
+  infoCodes: Object.freeze(["KeyI"]),
   startCode: "Space",
   restartCode: "KeyR",
 });
@@ -299,14 +296,6 @@ const HUD_CONFIG = Object.freeze({
     highThreshold: 0.5,
     mediumThreshold: 0.25,
   }),
-});
-
-const PLAYER_DEFENSE_CONFIG = Object.freeze({
-  default: Object.freeze({ outerFlat: 1, percent: 0.05, innerFlat: 1 }),
-  rapid: Object.freeze({ outerFlat: 0, percent: 0.04, innerFlat: 0 }),
-  spread: Object.freeze({ outerFlat: 1, percent: 0.06, innerFlat: 1 }),
-  energy: Object.freeze({ outerFlat: 2, percent: 0.12, innerFlat: 2 }),
-  nova: Object.freeze({ outerFlat: 3, percent: 0.08, innerFlat: 2 }),
 });
 
 const ITEM_ICON_CONFIG = Object.freeze({
@@ -921,7 +910,7 @@ const SPECIAL_TIER_COSTS = normalizeDescendingPositiveIntegers(
 const SPECIAL_CONFIG = Object.freeze({
   meterMax: 100,
   passiveRegenPerSecond: 0.8,
-  inputCodes: Object.freeze(["ControlLeft", "ControlRight"]),
+  inputCodes: Object.freeze(["ControlLeft", "ControlRight", "KeyX"]),
   tierCosts: SPECIAL_TIER_COSTS,
   overdrive: Object.freeze({
     duration: 6,

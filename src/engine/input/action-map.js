@@ -7,12 +7,16 @@
     restart: Object.freeze(["KeyR"]),
     pause: Object.freeze(["KeyP", "Escape"]),
     fire: Object.freeze(["Space"]),
-    special: Object.freeze([]),
-    info: Object.freeze([]),
+    special: Object.freeze(["KeyX"]),
+    info: Object.freeze(["KeyI"]),
     moveLeft: Object.freeze(["ArrowLeft", "KeyA"]),
     moveRight: Object.freeze(["ArrowRight", "KeyD"]),
     moveUp: Object.freeze(["ArrowUp", "KeyW"]),
     moveDown: Object.freeze(["ArrowDown", "KeyS"]),
+    selectWeapon1: Object.freeze(["Digit1"]),
+    selectWeapon2: Object.freeze(["Digit2"]),
+    selectWeapon3: Object.freeze(["Digit3"]),
+    selectWeapon4: Object.freeze(["Digit4"]),
   });
 
   function configuredInput() {
@@ -47,6 +51,7 @@
       bindings.pause = uniqueCodes(inputConfig?.pauseCodes || DEFAULT_BINDINGS.pause);
       bindings.fire = uniqueCodes([inputConfig?.startCode || DEFAULT_BINDINGS.fire[0]]);
       bindings.special = uniqueCodes(specialConfig?.inputCodes || DEFAULT_BINDINGS.special);
+      bindings.info = uniqueCodes(inputConfig?.infoCodes || DEFAULT_BINDINGS.info);
 
       return new ActionMap(bindings, { preventDefaultCodes });
     }

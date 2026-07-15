@@ -33,7 +33,7 @@ const BALANCE = Object.freeze({
   heavyShipBaseDefense: 1,
   heavyShipDefensePerLevel: 0.5,
   heavyShipDefenseMax: 5.5,
-  totalDefenseMax: 10.5,
+  playerFlatDefenseMax: 10.5,
   shieldImpactDuration: 0.45,
 });
 

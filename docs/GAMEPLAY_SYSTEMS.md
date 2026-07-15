@@ -18,17 +18,16 @@ Date: 2026-05-10
 - After max shield reaches 50, `shield` pickups stop appearing.
 - `shieldDefense` pickups appear instead.
 - Shield defense can be upgraded up to level 10.
-- Each level reduces incoming health damage by 0.5 after shield absorption.
+- Each level adds 0.45 inner-flat defense after shield absorption.
 
 ## Ship defense
 
-- Energy and Nova ships have built-in heavy armor.
-- Energy and Nova grant 1 defense at weapon level 1.
-- Each additional Energy/Nova weapon level adds 0.5 defense.
-- Level 10 grants the max built-in ship defense of 5.5.
-- Total defense is capped at 10.5.
-- Damage is reduced by defense after shield absorption.
-- If incoming health damage is equal to or lower than defense, final HP damage becomes 0.
+- Each active weapon ship supplies an outer-flat, percent-reduction, and inner-flat defense profile.
+- Energy and Nova additionally grant 1 heavy-ship outer defense at weapon level 1.
+- Each additional Energy/Nova weapon level adds 0.5 heavy-ship outer defense, capped at 5.5.
+- Outer and inner flat defense share an effective cap of 10.5. Outer flat is kept first and inner flat uses the remaining cap.
+- Percent reduction is separate from the flat cap. The HUD keeps armor level plus flat defense on one compact line and percent reduction on a second line.
+- Shield absorbs damage first. Any positive hit that reaches HP deals at least 1 damage after outer flat, percent, and inner flat are applied.
 
 ## Damage and health scale
 
@@ -102,6 +101,14 @@ Date: 2026-05-10
 - Each core level gives that weapon 5% more damage.
 - Max core level is 10 per weapon.
 
+## Starting loadout
+
+- The ready screen always has one selected starting weapon. Rapid is the default.
+- Left/Right or A/D cycles Rapid, Energy, Spread, and Nova. Number keys 1-4 select them directly.
+- Pressing Space equips only the selected weapon at level 1 and starts the run.
+- Restart preserves the current selection, resets run progression, and returns to ready instead of starting automatically.
+- Random weapon drops continue to switch and upgrade weapons after the run starts.
+
 ## Weapon catalog
 
 - Weapon identity and weapon-specific tuning data are owned by `src/gameplay/weapon-definitions.js`.
@@ -111,8 +118,9 @@ Date: 2026-05-10
 
 ## Runtime config
 
-- Shared runtime tuning is owned by `src/gameplay/game-config.js`.
-- Player defaults, input keys, game timers, spawn rules, enemy role stats, projectile defaults, HUD layout, background tuning, burst tuning, and drone progression should live there instead of inside entity or system code.
+- General runtime tuning is owned by `src/gameplay/game-config.js`.
+- Starting-loadout and Assist Continue policy are owned by `src/gameplay/run-rules.js`; player defense policy is owned by `src/gameplay/player-defense-rules.js`.
+- Player defaults, input keys, game timers, spawn rules, enemy role stats, projectile defaults, HUD layout, background tuning, burst tuning, and drone progression remain in `game-config.js` instead of entity or system code.
 - Entity and system code should express behavior and state transitions, not raw tuning numbers.
 
 ## HUD and item icons
@@ -178,7 +186,7 @@ Date: 2026-05-10
 
 ## Special skills
 
-- Ctrl now uses the current weapon's special skill instead of charging while held.
+- X or Ctrl uses the current weapon's special skill instead of charging while held.
 - Special meter maxes at 100%.
 - Special meter passively regenerates at 0.8% per second.
 - Killing enemies grants special meter based on enemy threat level.
@@ -274,7 +282,18 @@ Date: 2026-05-10
 - Continue restores player HP and shield to their current maximum values.
 - Continue returns the player to the start position and grants short invincibility.
 - Continue count is tracked on the current run and increments each time Continue is used.
-- Pressing R or the Restart button still starts a fresh run.
+- A run with one or more Continues is an assisted run. HUD and game-over copy expose that status without storing a duplicate flag.
+- Score, kills, distance, and time are cumulative session values rather than an unassisted high-score claim.
+- Pressing R or the Restart button resets progression and returns to ready with the current starting weapon still selected.
+
+## Feedback, accessibility, and audio
+
+- Special use returns a semantic success/failure result. Missing weapon, insufficient meter, and Nova mine capacity remain distinct reasons, and failed use never spends meter.
+- Item collection returns semantic repair/overflow, level, capacity, weapon switch, and core outcomes. Canvas and aria-live copy are derived from those outcomes rather than recalculating gameplay.
+- `GameFeedbackSystem` owns immutable transient events; Canvas copy, aria-live output, and Web Audio are separate subscribers/presenters.
+- The document language is Korean. The Canvas has keyboard focus, fallback text, an accessible label and control description; `I` toggles Game Info while paused.
+- Audio is optional, unlocks only after a user gesture, and persists mute state. Audio failure does not change gameplay results.
+- The supported play scope is desktop keyboard. Touch controls remain a separate product decision.
 
 ## Nova projectile tuning
 
@@ -332,6 +351,8 @@ Date: 2026-05-10
 - Player health remains at 100.
 - Player incoming health damage uses shield absorption first, then a 3-layer profile: outer flat reduction, percent reduction, inner flat reduction.
 - Player defense profiles are tied to the active ship/weapon identity: Rapid is fragile, Spread is balanced, Energy is defensive, and Nova is armored.
+- Player outer and inner flat defense are capped together at 10.5 in the actual damage calculation, while percent reduction remains separate.
+- Any positive hit remaining after shield absorption deals at least 1 HP damage.
 - Rapid normal fire is a narrow pulse laser. Rapid special remains the wider sustained beam.
 - Rapid normal hit damage scales gradually from 25 at level 1 to 50 at level 10.
 - Energy normal and special projectiles use the same enlarged hit radius for damage and enemy bullet absorption so the visible orb reads as a usable barrier.

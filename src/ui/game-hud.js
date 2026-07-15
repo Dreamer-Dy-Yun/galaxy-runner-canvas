@@ -13,10 +13,10 @@ class GameHud {
     ctx.fillText(`K ${game.state.kills}`, HUD_CONFIG.killX, HUD_CONFIG.scoreY);
     ctx.fillText(`DIST ${Math.floor(game.state.distance)}m`, HUD_CONFIG.distanceX, HUD_CONFIG.scoreY);
     ctx.fillText(`PTS ${Math.floor(game.state.score)}`, HUD_CONFIG.scoreX, HUD_CONFIG.scoreY);
-    if (game.state.continues > 0) ctx.fillText(`CONT ${game.state.continues}`, HUD_CONFIG.continueX, HUD_CONFIG.continueY);
+    if (RunRules.isAssisted(game.state)) ctx.fillText(`AID ${game.state.continues}`, HUD_CONFIG.continueX, HUD_CONFIG.continueY);
     GameHud.drawHealthBar(ctx, game.player, HUD_CONFIG.hpX, HUD_CONFIG.healthBarY, HUD_CONFIG.barWidth, HUD_CONFIG.healthBarHeight);
     GameHud.drawShieldBar(ctx, game.player, HUD_CONFIG.hpX, HUD_CONFIG.shieldBarY, HUD_CONFIG.barWidth, HUD_CONFIG.shieldBarHeight);
-    GameHud.drawSpecialMeter(ctx, game.player);
+    GameHud.drawSpecialMeter(ctx, game.player, game);
     GameHud.drawStatusGrid(ctx, GameHud.activeTags(game.player));
   }
 
@@ -36,25 +36,36 @@ class GameHud {
         { size: HUD_CONFIG.statusGrid.iconSize }
       );
       ctx.fillStyle = tag.color;
+      GameHud.drawTagValue(ctx, tag, x);
+    }
+  }
+
+  static drawTagValue(ctx, tag, x) {
+    const lines = Array.isArray(tag.lines) ? tag.lines : [String(tag.value)];
+    const lineHeight = 11;
+    const startY =
+      HUD_CONFIG.statusGrid.y +
+      HUD_CONFIG.statusGrid.valueYOffset -
+      ((lines.length - 1) * lineHeight) / 2;
+    for (let index = 0; index < lines.length; index += 1) {
       ctx.fillText(
-        String(tag.value),
+        String(lines[index]),
         x + HUD_CONFIG.statusGrid.valueXOffset,
-        HUD_CONFIG.statusGrid.y + HUD_CONFIG.statusGrid.valueYOffset
+        startY + index * lineHeight
       );
     }
   }
 
-  static drawSpecialMeter(ctx, player) {
-    if (!player.activeWeaponKind()) return;
-
+  static drawSpecialMeter(ctx, player, game) {
+    const kind = player.activeWeaponKind();
     const ratio = clampNumber((player.specialMeter || 0) / SPECIAL_CONFIG.meterMax, 0, 1);
     ItemIconRenderer.draw(ctx, "bonus", HUD_CONFIG.special.iconX, HUD_CONFIG.special.iconY, ITEM_DEFINITIONS.bonus.color, {
       size: HUD_CONFIG.special.iconSize,
     });
 
     ctx.font = HUD_CONFIG.mainFont;
-    ctx.fillStyle = ITEM_DEFINITIONS.bonus.color;
-    ctx.fillText(`${SpecialSystem.percent(player)}%`, HUD_CONFIG.special.valueX, HUD_CONFIG.special.valueY);
+    ctx.fillStyle = kind ? ITEM_DEFINITIONS.bonus.color : "rgba(239, 250, 255, 0.46)";
+    ctx.fillText(GameHud.specialStatus(player, game), HUD_CONFIG.special.valueX, HUD_CONFIG.special.valueY);
 
     ctx.fillStyle = HUD_CONFIG.special.backColor;
     ctx.fillRect(HUD_CONFIG.special.barX, HUD_CONFIG.special.barY, HUD_CONFIG.special.barWidth, HUD_CONFIG.special.barHeight);
@@ -63,6 +74,19 @@ class GameHud {
     ctx.strokeStyle = HUD_CONFIG.special.borderColor;
     ctx.lineWidth = 1;
     ctx.strokeRect(HUD_CONFIG.special.barX, HUD_CONFIG.special.barY, HUD_CONFIG.special.barWidth, HUD_CONFIG.special.barHeight);
+  }
+
+  static specialStatus(player, game) {
+    const kind = player.activeWeaponKind();
+    if (!kind) return "LOCK";
+    if (
+      kind === "nova" &&
+      SpecialSystem.activeNovaMineCount(game) >= SPECIAL_CONFIG.nova.maxMines
+    ) {
+      return "MAX";
+    }
+    if (SpecialSystem.readiness(player) >= 1) return "READY";
+    return `${SpecialSystem.percent(player)}%`;
   }
 
   static drawHealthBar(ctx, player, x, y, width, height) {
@@ -96,8 +120,7 @@ class GameHud {
 
   static activeTags(player) {
     const tags = [];
-    const shieldDefense = player.shieldDefense();
-    const totalDefense = player.totalDefense();
+    const defense = player.defenseStats();
 
     if (player.maxShield > 0) {
       tags.push(GameHud.iconTag("shield", `${Math.ceil(player.shield)}/${player.maxShield}`, ITEM_DEFINITIONS.shield.color));
@@ -109,12 +132,12 @@ class GameHud {
       tags.push(
         GameHud.iconTag(
           "shieldDefense",
-          `D${GameHud.formatNumber(shieldDefense)}`,
+          `L${player.shieldDefenseLevel}`,
           ITEM_DEFINITIONS.shieldDefense.color
         )
       );
     }
-    if (player.armorLevel > 0 || totalDefense > 0) tags.push(GameHud.armorTag(player, totalDefense));
+    if (defense.flatTotal > 0 || defense.percent > 0) tags.push(GameHud.defenseTag(player, defense));
     for (const tag of GameHud.weaponLevelTags(player)) tags.push(tag);
     for (const tag of GameHud.weaponCoreTags(player)) tags.push(tag);
     if (player.droneLevel > 0) tags.push(GameHud.iconTag("drone", player.droneLevel, ITEM_DEFINITIONS.drone.color));
@@ -138,12 +161,14 @@ class GameHud {
     return [];
   }
 
-  static armorTag(player, totalDefense = null) {
-    const values = [];
-    if (player.armorLevel > 0) values.push(player.armorLevel);
-    const defense = Number.isFinite(totalDefense) ? totalDefense : player.totalDefense();
-    if (defense > 0) values.push(`D${GameHud.formatNumber(defense)}`);
-    return GameHud.iconTag("armor", values.join("/"), ITEM_DEFINITIONS.armor.color);
+  static defenseTag(player, defense) {
+    const flat = GameHud.formatNumber(defense.flatTotal);
+    const reduction = Math.round(defense.percent * 100);
+    const flatLine = player.armorLevel > 0 ? `A${player.armorLevel}/D${flat}` : `D${flat}`;
+    return {
+      ...GameHud.iconTag("armor", flatLine, ITEM_DEFINITIONS.armor.color),
+      lines: Object.freeze([flatLine, `R${reduction}%`]),
+    };
   }
 
   static iconTag(icon, value, color) {

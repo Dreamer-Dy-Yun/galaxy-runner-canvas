@@ -5,6 +5,7 @@ class GameLoopSystem {
   static update(game, dt) {
     if (game.state.mode !== "running") return;
 
+    game.feedback?.update(dt);
     game.state.time += dt;
     game.state.distance += dt * GAME_CONFIG.scoring.distancePerSecond;
     game.state.danger = Math.min(GAME_CONFIG.danger.max, game.state.time / GAME_CONFIG.danger.secondsPerDanger);

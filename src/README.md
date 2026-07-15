@@ -7,6 +7,7 @@
 ## 하위 폴더
 
 - `core`: legacy script 경로와 공통 primitive helper.
+- `audio`: semantic gameplay feedback를 구독하는 선택적 Web Audio와 mute lifecycle.
 - `engine`: Canvas runtime, frame clock, scene/input/world/asset/render/debug 공통 계약.
 - `entities`: 플레이어, 적, 투사체, 아이템, 효과 entity 상태와 동작.
 - `gameplay`: balance, catalog, item/help data 같은 게임 계약 데이터.
@@ -19,7 +20,8 @@
 - `main.js`: engine/game 객체를 조립하고 runtime과 diagnostics를 연결한 뒤 frame clock을 시작한다.
 - `GalaxyRunnerDebug`: overlay의 표시 lifecycle을 다루는 console 진입점이다.
 - `GalaxyRunnerFrameProfiler`: profiler의 수집 lifecycle과 snapshot을 다루는 console 진입점이다.
-- `GalaxyRunnerStatus()`: 브라우저 smoke와 수동 점검을 위한 shallow read-only snapshot을 반환한다. 필드는 `mode`, `distance`, `score`, `hp`, `runtimeRunning`, `debugEnabled`, `profilerSampleCount`이며 gameplay 제어 객체나 mutable 참조는 노출하지 않는다.
+- `GalaxyRunnerAudio`: mute와 audio lifecycle을 수동 점검하는 진입점이다. gameplay 판정에는 접근하지 않는다.
+- `GalaxyRunnerStatus()`: 브라우저 smoke와 soak를 위한 read-only snapshot을 반환한다. run/loadout/Assist, 현재 feedback, input down 여부, entity counts, frame p95/max, audio mute, runtime/debug 상태를 immutable 값으로 제공하며 gameplay 제어 객체는 노출하지 않는다.
 
 ## 경계
 

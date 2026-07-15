@@ -18,12 +18,14 @@ class GameSessionSystem {
 
     if (actionName === "restart") {
       game.reset();
-      game.start();
       return true;
     }
 
+    if (GameSessionSystem.selectStartingWeapon(game, actionName)) return true;
+
     if (actionName === "info") {
-      if (action?.sourceEvent) game.handleCanvasClick(action.sourceEvent);
+      if (action?.source === "canvas" && action.sourceEvent) game.handleCanvasClick(action.sourceEvent);
+      else GameSessionSystem.toggleInfo(game);
       return true;
     }
 
@@ -36,16 +38,28 @@ class GameSessionSystem {
       return;
     }
     if (game.state.mode === "ready") {
+      const startingWeaponKind = RunRules.normalizeStartingWeapon(game.state.startingWeaponKind);
+      if (!startingWeaponKind) return;
+      game.state.startingWeaponKind = startingWeaponKind;
+      game.player.equipWeapon(startingWeaponKind);
       game.state.mode = "running";
     }
+  }
+
+  static selectStartingWeapon(game, actionName) {
+    if (game.state?.mode !== "ready") return false;
+    const nextKind = RunRules.weaponForAction(actionName, game.state.startingWeaponKind);
+    if (!nextKind) return false;
+    game.state.startingWeaponKind = nextKind;
+    return true;
   }
 
   static continueRun(game) {
     if (game.state.mode !== "gameover") return;
     game.state.continues += 1;
-    game.state.mode = GAME_CONFIG.continue.mode;
-    game.state.spawnTimer = Math.min(game.state.spawnTimer, -GAME_CONFIG.continue.spawnGraceSeconds);
-    game.state.itemTimer = Math.min(game.state.itemTimer, -GAME_CONFIG.continue.itemGraceSeconds);
+    game.state.mode = RUN_RULES.continue.mode;
+    game.state.spawnTimer = Math.min(game.state.spawnTimer, -RUN_RULES.continue.spawnGraceSeconds);
+    game.state.itemTimer = Math.min(game.state.itemTimer, -RUN_RULES.continue.itemGraceSeconds);
     game.clearDangerField();
     game.player.continue();
   }
@@ -79,7 +93,13 @@ class GameSessionSystem {
     const x = ((event.clientX - rect.left) / rect.width) * PLAYFIELD.width;
     const y = ((event.clientY - rect.top) / rect.height) * PLAYFIELD.height;
     if (GameOverlay.pointInRect(x, y, GAME_INFO_CONFIG.button)) {
-      game.infoPanelOpen = !game.infoPanelOpen;
+      GameSessionSystem.toggleInfo(game);
     }
+  }
+
+  static toggleInfo(game) {
+    if (game.state?.mode !== "paused") return false;
+    game.infoPanelOpen = !game.infoPanelOpen;
+    return true;
   }
 }

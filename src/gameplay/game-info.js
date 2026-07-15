@@ -150,7 +150,12 @@ const GAME_INFO_ITEMS_RAW = Object.freeze([
   Object.freeze({ kind: "repair", name: "수리", color: "#ff6f8f", effect: "HP 회복" }),
   Object.freeze({ kind: "armor", name: "장갑", color: "#d8e6f0", effect: "최대 HP+" }),
   Object.freeze({ kind: "shield", name: "실드", color: "#75dfff", effect: "실드 +10" }),
-  Object.freeze({ kind: "shieldDefense", name: "실드 방어", color: "#9af8ff", effect: "피해 -0.5" }),
+  Object.freeze({
+    kind: "shieldDefense",
+    name: "실드 방어",
+    color: "#9af8ff",
+    effect: `HP 피해 -${BALANCE.shieldDefensePerLevel}`,
+  }),
   Object.freeze({ kind: "rapid", name: "무기", color: "#ffe06a", effect: "최고 LV 보상" }),
   Object.freeze({ kind: "weaponCore", name: "코어", color: "#f6fbff", effect: "10LV 피해 +5%" }),
   Object.freeze({ kind: "drone", name: "드론", color: "#b4a2ff", effect: "보조 공격" }),
@@ -169,7 +174,7 @@ const GAME_INFO_CONFIG = Object.freeze({
   }),
   panel: Object.freeze({
     x: 60,
-    y: 36,
+    y: 12,
     width: 840,
     height: 466,
     radius: 18,
@@ -234,7 +239,7 @@ const GAME_INFO_CONFIG = Object.freeze({
 const GAME_INFO = Object.freeze({
   title: "게임 정보",
   itemTitle: "아이템",
-  hint: "Esc: 게임 재개 / 게임 정보 버튼 다시 클릭: 닫기",
+  hint: "Esc: 게임 재개 / I 또는 게임 정보 버튼: 닫기",
   ships: Object.freeze(GAME_INFO_SHIPS_RAW.map(normalizeShipInfo)),
   items: Object.freeze(GAME_INFO_ITEMS_RAW.map(normalizeItemInfo)),
 });

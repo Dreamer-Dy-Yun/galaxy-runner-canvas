@@ -63,6 +63,7 @@ class Player {
     this.specialMeter = 0;
     this.specialOverdriveTimer = 0;
     this.wasSpecialDown = false;
+    this.specialInputResetVersion = -1;
     this.updateWeaponFootprint();
   }
 
@@ -308,36 +309,7 @@ class Player {
   }
 
   collect(item, game) {
-    if (item.kind === "repair") {
-      if (this.health < this.maxHealth) this.health = Math.min(this.maxHealth, this.health + BALANCE.repairAmount);
-      else game.state.score += BALANCE.repairOverflowScore;
-      game.burst(item.x, item.y, item.color, 12);
-    } else if (item.kind === "armor") {
-      this.armorLevel = Math.min(BALANCE.armorMaxLevel, this.armorLevel + 1);
-      const nextMaxHealth = BALANCE.basePlayerHealth + this.armorLevel * BALANCE.armorHealthStep;
-      const gainedHealth = nextMaxHealth - this.maxHealth;
-      this.maxHealth = nextMaxHealth;
-      this.health = Math.min(this.maxHealth, this.health + Math.max(BALANCE.armorPickupMinHeal, gainedHealth));
-      game.burst(item.x, item.y, item.color, 16);
-    } else if (item.kind === "shield") {
-      this.upgradeShieldCapacity();
-      game.burst(item.x, item.y, item.color, 16);
-    } else if (item.kind === "shieldDefense") {
-      this.shieldDefenseLevel = Math.min(BALANCE.shieldDefenseMaxLevel, this.shieldDefenseLevel + 1);
-      game.burst(item.x, item.y, item.color, 18);
-    } else if (isWeaponKind(item.kind)) {
-      this.equipWeapon(item.kind);
-      game.burst(item.x, item.y, item.color, WeaponCatalog.pickupBurst(item.kind));
-    } else if (item.kind === "drone") {
-      this.droneLevel = Math.min(DroneSystem.maxLevel, this.droneLevel + 1);
-      this.drones = DroneSystem.count(this.droneLevel);
-      game.burst(item.x, item.y, item.color, 18);
-    } else if (item.kind === "bonus") {
-      this.activateSpecialOverdrive();
-      game.burst(item.x, item.y, item.color, 24);
-    } else {
-      game.burst(item.x, item.y, item.color, 18);
-    }
+    return PlayerProgressionSystem.collect(this, item, game);
   }
 
   activateSpecialOverdrive() {
@@ -346,25 +318,7 @@ class Player {
   }
 
   equipWeapon(kind) {
-    if (!isWeaponKind(kind)) return;
-
-    const activeKind = this.activeWeaponKind();
-    const maxLevel = WeaponCatalog.maxLevel(kind);
-    const ownedLevel = Math.max(this.weaponHighestLevel(kind), this.weaponLevel(kind));
-    let nextLevel = Math.max(1, ownedLevel);
-    this.fireTimer = 0;
-
-    if (ownedLevel >= maxLevel) {
-      this.addWeaponCore(kind);
-      nextLevel = maxLevel;
-    } else if (activeKind === kind) {
-      nextLevel = Math.min(maxLevel, ownedLevel + 1);
-    }
-
-    this.setWeaponHighestLevel(kind, nextLevel);
-    this.clearWeaponLevels();
-    this.setWeaponLevel(kind, nextLevel);
-    this.updateWeaponFootprint();
+    return PlayerProgressionSystem.equipWeapon(this, kind);
   }
 
   clearWeaponLevels() {
@@ -420,25 +374,33 @@ class Player {
   }
 
   hit(game, damage = BALANCE.enemyFallbackDamage) {
-    if (this.invincible > 0 || game.state.mode !== "running") return;
+    if (this.invincible > 0 || game.state.mode !== "running") return null;
 
     let remainingDamage = Math.max(0, damage);
+    let shieldAbsorbed = 0;
 
     if (this.shield > 0) {
       const absorbed = Math.min(this.shield, remainingDamage);
+      shieldAbsorbed = absorbed;
       this.shield -= absorbed;
       remainingDamage -= absorbed;
       this.invincible = PLAYER_CONFIG.invincibility.shieldAbsorb;
       this.triggerShieldImpact(absorbed);
       game.burst(this.x, this.y, "#75dfff", 20);
-      if (remainingDamage <= 0) return;
+      if (remainingDamage <= 0) {
+        const result = Object.freeze({ outcome: "shield", amount: absorbed, shield: this.shield });
+        game.feedback?.emit("player.hit", result);
+        return result;
+      }
     }
 
     const finalDamage = this.resolveIncomingDamage(remainingDamage);
     if (finalDamage <= 0) {
       this.invincible = PLAYER_CONFIG.invincibility.shieldAbsorb;
       game.burst(this.x, this.y, "#d8e6f0", 12);
-      return;
+      const result = Object.freeze({ outcome: "blocked", amount: 0, shieldAbsorbed });
+      game.feedback?.emit("player.hit", result);
+      return result;
     }
 
     this.health -= finalDamage;
@@ -448,6 +410,15 @@ class Player {
       this.health = 0;
       game.state.mode = "gameover";
     }
+    const result = Object.freeze({
+      outcome: "health",
+      amount: finalDamage,
+      shieldAbsorbed,
+      health: this.health,
+      gameover: game.state.mode === "gameover",
+    });
+    game.feedback?.emit("player.hit", result);
+    return result;
   }
 
   upgradeShieldCapacity() {
@@ -461,7 +432,7 @@ class Player {
     this.health = this.maxHealth;
     this.shield = this.maxShield;
     this.specialOverdriveTimer = 0;
-    this.invincible = GAME_CONFIG.continue.playerInvincibility;
+    this.invincible = RUN_RULES.continue.playerInvincibility;
     this.fireTimer = 0;
     this.wasSpecialDown = false;
     this.updateWeaponFootprint();
@@ -473,45 +444,27 @@ class Player {
   }
 
   shipDefense() {
-    const level = Math.max(this.energyLevel, this.novaLevel);
-    if (level > 0) {
-      return Math.min(
-        BALANCE.heavyShipDefenseMax,
-        BALANCE.heavyShipBaseDefense + (level - 1) * BALANCE.heavyShipDefensePerLevel
-      );
-    }
-    return 0;
+    return PlayerDefenseSystem.shipDefense(this);
   }
 
   shieldDefense() {
-    return this.shieldDefenseLevel * BALANCE.shieldDefensePerLevel;
+    return PlayerDefenseSystem.shieldDefense(this);
   }
 
   defenseProfile() {
-    const kind = this.activeWeaponKind() || "default";
-    return PLAYER_DEFENSE_CONFIG[kind] || PLAYER_DEFENSE_CONFIG.default;
+    return PlayerDefenseSystem.profile(this);
   }
 
   defenseStats() {
-    const profile = this.defenseProfile();
-    return {
-      outerFlat: Math.max(0, (profile.outerFlat || 0) + this.shipDefense()),
-      percent: clampNumber(profile.percent || 0, 0, 0.85),
-      innerFlat: Math.max(0, (profile.innerFlat || 0) + this.shieldDefense()),
-    };
+    return PlayerDefenseSystem.snapshot(this);
   }
 
   resolveIncomingDamage(rawDamage) {
-    const defense = this.defenseStats();
-    const afterOuter = Math.max(0, rawDamage - defense.outerFlat);
-    const afterPercent = afterOuter * (1 - defense.percent);
-    if (afterPercent <= 0) return 0;
-    return Math.max(1, afterPercent - defense.innerFlat);
+    return PlayerDefenseSystem.resolveIncomingDamage(this, rawDamage);
   }
 
   totalDefense() {
-    const defense = this.defenseStats();
-    return Math.min(BALANCE.totalDefenseMax, defense.outerFlat + defense.innerFlat);
+    return this.defenseStats().flatTotal;
   }
 
   draw(ctx, time) {

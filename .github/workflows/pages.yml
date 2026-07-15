@@ -51,6 +51,9 @@ jobs:
       - name: Run browser smoke test
         run: pnpm run test:browser
 
+      - name: Run seeded browser soak
+        run: pnpm run test:soak
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

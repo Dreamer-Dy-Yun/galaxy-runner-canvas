@@ -12,11 +12,12 @@ Galaxy Runner is a static Canvas shooter. The project is kept intentionally smal
 
 - `src/engine`: reusable 2D Canvas runtime boundary for canvas/DPR, frame loop, scene lifecycle, action-mapped input, world/entity storage, collision query, render helpers, asset preload, and debug hooks. It must not own Galaxy Runner-specific weapon, score, stage, item, boss, or HUD rules.
 - `src/core`: legacy script entrypoints and shared primitive helpers. New reusable runtime contracts should prefer `src/engine/*` unless a compatibility path is required.
-- `src/gameplay`: Galaxy Runner configuration and catalogs that define balance, weapons, stages, items, and score/distance rules.
+- `src/audio`: optional Web Audio presentation for semantic gameplay feedback, including lazy unlock and persistent mute state.
+- `src/gameplay`: Galaxy Runner configuration and catalogs that define run setup, Assist Continue, defense, weapons, stages, items, and score/distance rules.
 - `src/entities`: player, enemy, projectile, item, effect, and game object state.
-- `src/systems`: bounded gameplay systems such as session mode, frame loop orchestration, enemy spawn/lifecycle, projectile lifecycle, item pickup, boss AI, special skills, and performance pools.
+- `src/systems`: bounded gameplay systems such as session mode, player defense/progression, semantic feedback, frame loop orchestration, enemy spawn/lifecycle, projectile lifecycle, item pickup, boss AI, special skills, and performance pools.
 - `src/renderers`: canvas rendering boundaries, scene draw order, and registered player part layout helpers.
-- `src/ui`: HUD plus non-running overlays, including the pause information panel in `game-overlay.js`.
+- `src/ui`: HUD plus non-running overlays, including the ready loadout selector and pause information panel.
 - `mulAg/md`: 멀티 에이전트 거버넌스 문서(Plan/TODO/Review/DONE)와 역할/템플릿 정의.
 
 ## Engine / game boundary
@@ -47,8 +48,8 @@ Galaxy Runner is a static Canvas shooter. The project is kept intentionally smal
 
 The current hardening passes reduced `src/engine/game.js`, `src/entities/projectile.js`, `src/renderers/item-icon-renderer.js`, and `src/gameplay/weapon-catalog.js` below the 300-line project guideline by moving session, loop, spawn, projectile lifecycle, projectile rendering, item, effect, enemy lifecycle, overlay, scene draw, item icon fallback, and weapon definition responsibilities into focused files. The following legacy files still exceed 300 lines and should be split in separate hardening passes rather than mixed into unrelated fixes:
 
-- `src/gameplay/game-config.js`: split balance groups and contract validation by gameplay domain.
-- `src/entities/player.js`: split weapon firing, item collection, damage/defense, and rendering helpers.
+- `src/gameplay/game-config.js`: continue splitting remaining balance groups and contract validation by gameplay domain. Run and player-defense rules have moved to focused modules.
+- `src/entities/player.js`: split weapon firing and rendering helpers. Item progression and damage/defense calculations now delegate to focused systems.
 - `src/entities/enemy.js`: split role stats, AI movement, boss behavior bridges, and drawing helpers.
 
 ## Cleanup rule

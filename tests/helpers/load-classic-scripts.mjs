@@ -46,3 +46,10 @@ export async function loadClassicScripts(
 
   return targetContext;
 }
+
+export function readClassicBinding(context, expression) {
+  if (!context || typeof expression !== "string" || expression.trim().length === 0) {
+    throw new TypeError("readClassicBinding requires a VM context and expression");
+  }
+  return vm.runInContext(expression, context);
+}

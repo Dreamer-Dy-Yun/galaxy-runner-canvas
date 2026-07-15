@@ -1,79 +1,12 @@
 import assert from "node:assert/strict";
-import { createServer } from "node:http";
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { observeBrowserFailures, startArtifactServer } from "./helpers/artifact-browser.mjs";
 
 const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const artifactRoot = path.join(projectRoot, "dist");
-const contentTypes = new Map([
-  [".css", "text/css; charset=utf-8"],
-  [".html", "text/html; charset=utf-8"],
-  [".js", "text/javascript; charset=utf-8"],
-  [".json", "application/json; charset=utf-8"],
-  [".png", "image/png"],
-  [".webp", "image/webp"],
-]);
-
-async function startArtifactServer() {
-  const server = createServer(async (request, response) => {
-    try {
-      const requestUrl = new URL(request.url || "/", "http://127.0.0.1");
-      const pathname = decodeURIComponent(requestUrl.pathname);
-      const relativePath = pathname === "/" ? "index.html" : `.${pathname}`;
-      let filePath = path.resolve(artifactRoot, relativePath);
-      const artifactPrefix = `${artifactRoot}${path.sep}`;
-      if (filePath !== artifactRoot && !filePath.startsWith(artifactPrefix)) {
-        response.writeHead(403).end("Forbidden");
-        return;
-      }
-
-      if ((await stat(filePath)).isDirectory()) filePath = path.join(filePath, "index.html");
-      const body = await readFile(filePath);
-      response.writeHead(200, {
-        "content-length": body.length,
-        "content-type": contentTypes.get(path.extname(filePath)) || "application/octet-stream",
-      });
-      response.end(request.method === "HEAD" ? undefined : body);
-    } catch (error) {
-      const statusCode = error?.code === "ENOENT" ? 404 : 500;
-      response.writeHead(statusCode).end(statusCode === 404 ? "Not Found" : "Server Error");
-    }
-  });
-
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  if (!address || typeof address === "string") throw new Error("Failed to bind artifact server");
-  return {
-    baseUrl: `http://127.0.0.1:${address.port}`,
-    close: async () => {
-      server.closeAllConnections?.();
-      await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-    },
-  };
-}
-
-function observeBrowserFailures(page) {
-  const failures = [];
-  page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
-  page.on("console", (message) => {
-    if (message.type() === "error") failures.push(`console.error: ${message.text()}`);
-  });
-  page.on("requestfailed", (request) => {
-    failures.push(`requestfailed: ${request.url()} (${request.failure()?.errorText || "unknown"})`);
-  });
-  page.on("response", (response) => {
-    const resourceType = response.request().resourceType();
-    if (response.status() >= 400) {
-      failures.push(`${resourceType} ${response.status()}: ${response.url()}`);
-    }
-  });
-  return failures;
-}
 
 async function readStatus(page) {
   return page.evaluate(() => globalThis.GalaxyRunnerStatus());
@@ -87,6 +20,10 @@ async function waitForStatus(page, expected) {
       if (requirements.mode && status.mode !== requirements.mode) return false;
       if (requirements.runtimeRunning === true && status.runtimeRunning !== true) return false;
       if (Number.isFinite(requirements.minDistance) && status.distance <= requirements.minDistance) return false;
+      if (requirements.selectedStartingWeapon && status.selectedStartingWeapon !== requirements.selectedStartingWeapon) return false;
+      if ("activeWeapon" in requirements && status.activeWeapon !== requirements.activeWeapon) return false;
+      if (requirements.feedbackType && status.feedback?.type !== requirements.feedbackType) return false;
+      if ("infoPanelOpen" in requirements && status.infoPanelOpen !== requirements.infoPanelOpen) return false;
       return true;
     },
     expected,
@@ -111,15 +48,56 @@ async function verifyScenario(browser, baseUrl, debugEnabled) {
     assert.equal(ready.debugEnabled, debugEnabled);
     assert.equal(ready.runtimeRunning, true);
     assert.ok(ready.profilerSampleCount > 0, "profiler should collect frame samples");
+    assert.equal(ready.selectedStartingWeapon, "rapid");
+    assert.equal(ready.activeWeapon, null);
+
+    const accessibility = await page.evaluate(() => {
+      const canvas = document.getElementById("game");
+      const liveRegion = document.getElementById("game-status");
+      const audioButton = document.getElementById("audio-toggle");
+      return {
+        language: document.documentElement.lang,
+        canvasTabIndex: canvas?.tabIndex,
+        canvasLabel: canvas?.getAttribute("aria-label"),
+        canvasDescription: canvas?.getAttribute("aria-describedby"),
+        canvasFallback: canvas?.textContent?.trim(),
+        liveRole: liveRegion?.getAttribute("role"),
+        liveMode: liveRegion?.getAttribute("aria-live"),
+        audioPressed: audioButton?.getAttribute("aria-pressed"),
+      };
+    });
+    assert.equal(accessibility.language, "ko");
+    assert.equal(accessibility.canvasTabIndex, 0);
+    assert.ok(accessibility.canvasLabel?.includes("슈팅 게임"));
+    assert.equal(accessibility.canvasDescription, "game-controls");
+    assert.ok(accessibility.canvasFallback?.includes("키보드"));
+    assert.equal(accessibility.liveRole, "status");
+    assert.equal(accessibility.liveMode, "polite");
+    assert.equal(accessibility.audioPressed, "false");
+
+    await page.keyboard.press("ArrowRight");
+    await waitForStatus(page, { mode: "ready", selectedStartingWeapon: "energy", activeWeapon: null });
 
     await page.keyboard.press("Space");
     const running = await waitForStatus(page, {
       mode: "running",
       minDistance: ready.distance + 2,
+      activeWeapon: "energy",
     });
+
+    await page.keyboard.down("KeyX");
+    try {
+      await waitForStatus(page, { mode: "running", feedbackType: "special.failed" });
+    } finally {
+      await page.keyboard.up("KeyX");
+    }
 
     await page.keyboard.press("KeyP");
     const paused = await waitForStatus(page, { mode: "paused" });
+    await page.keyboard.press("KeyI");
+    await waitForStatus(page, { mode: "paused", infoPanelOpen: true });
+    await page.keyboard.press("KeyI");
+    await waitForStatus(page, { mode: "paused", infoPanelOpen: false });
     await page.waitForTimeout(350);
     const stillPaused = await readStatus(page);
     assert.equal(stillPaused.mode, "paused");
@@ -136,13 +114,37 @@ async function verifyScenario(browser, baseUrl, debugEnabled) {
       document.getElementById("restart").click();
       return globalThis.GalaxyRunnerStatus();
     });
-    assert.equal(restarted.mode, "running");
+    assert.equal(restarted.mode, "ready");
     assert.equal(restarted.distance, 0, "restart should synchronously reset progress");
+    assert.equal(restarted.selectedStartingWeapon, "energy");
+    assert.equal(restarted.activeWeapon, null);
     assert.equal(restarted.runtimeRunning, true);
     assert.equal(restarted.debugEnabled, debugEnabled);
     assert.ok(restarted.profilerSampleCount >= ready.profilerSampleCount);
 
+    await page.keyboard.press("Space");
     await waitForStatus(page, { mode: "running", minDistance: 2 });
+    await page.keyboard.down("ArrowLeft");
+    await page.waitForFunction(() => globalThis.GalaxyRunnerStatus().input.moveLeft === true);
+    await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    await page.waitForFunction(() => globalThis.GalaxyRunnerStatus().input.moveLeft === false);
+
+    await page.keyboard.down("KeyX");
+    try {
+      await waitForStatus(page, { mode: "running", feedbackType: "special.failed" });
+      await page.waitForFunction(() => globalThis.GalaxyRunnerStatus().feedback === null);
+      await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+      await page.keyboard.down("KeyX");
+      await waitForStatus(page, { mode: "running", feedbackType: "special.failed" });
+    } finally {
+      await page.keyboard.up("KeyX");
+    }
+
+    const audioButton = page.locator("#audio-toggle");
+    await audioButton.click();
+    assert.equal(await audioButton.getAttribute("aria-pressed"), "true");
+    await audioButton.click();
+    assert.equal(await audioButton.getAttribute("aria-pressed"), "false");
     assert.deepEqual(failures, [], `browser failures for debug=${debugEnabled}`);
   } finally {
     await context.close();
@@ -151,13 +153,13 @@ async function verifyScenario(browser, baseUrl, debugEnabled) {
 
 async function main() {
   await stat(path.join(artifactRoot, "galaxy-runner.html"));
-  const server = await startArtifactServer();
+  const server = await startArtifactServer(artifactRoot);
   let browser;
   try {
     browser = await chromium.launch({ headless: true });
     await verifyScenario(browser, server.baseUrl, false);
     await verifyScenario(browser, server.baseUrl, true);
-    console.log("[browser-smoke] PASS: debug off/on lifecycle and browser failures verified.");
+    console.log("[browser-smoke] PASS: P1/P2 lifecycle, accessibility, recovery, and browser failures verified.");
   } finally {
     await browser?.close();
     await server.close();

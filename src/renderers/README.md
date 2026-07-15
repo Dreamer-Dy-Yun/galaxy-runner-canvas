@@ -7,7 +7,7 @@
 ## 파일 책임
 
 - `space-background.js`: 배경 별과 스크롤 효과.
-- `game-scene-renderer.js`: world entity, projectile, HUD, overlay의 frame draw 순서.
+- `game-scene-renderer.js`: world entity, projectile, HUD, transient feedback, non-running overlay의 frame draw 순서.
 - `projectile-renderer.js`: projectile atlas sprite와 공통 vector visual dispatch.
 - `projectile-energy-renderer.js`: absorbed enemy-bullet energy core visual.
 - `projectile-special-renderer.js`: rapid beam, nova, spread, drone projectile vector visual.

@@ -104,7 +104,9 @@ class EnemyLifecycleSystem {
     if (enemy.isBoss) game.bossCount = Math.max(0, game.bossCount - 1);
     SpecialSystem.awardKill(game.player, enemy);
     game.state.kills += 1;
-    game.state.score += EnemyLifecycleSystem.score(enemy, game.state.danger);
+    const score = EnemyLifecycleSystem.score(enemy, game.state.danger);
+    game.state.score += score;
+    game.feedback?.emit("enemy.destroyed", { role: enemy.role, score });
     EnemyLifecycleSystem.dropItemFromEnemy(game, enemy);
     if (enemy.role === "splitter") game.spawnEnemyChildren(enemy);
     if (enemy.role === "boss") game.advanceStage();

@@ -9,34 +9,53 @@ class GameOverlay {
     ctx.fillStyle = "rgba(5, 7, 16, 0.68)";
     ctx.fillRect(0, 0, PLAYFIELD.width, PLAYFIELD.height);
     ctx.textAlign = "center";
+    if (game.state.mode === "ready") GameOverlay.drawReady(ctx, game);
+    else if (game.state.mode === "gameover") GameOverlay.drawGameOver(ctx, game);
+    else GameOverlay.drawPaused(ctx, game);
+    ctx.restore();
+  }
+
+  static drawReady(ctx, game) {
     ctx.fillStyle = "#f6fbff";
     ctx.font = "800 38px Segoe UI, Noto Sans KR, sans-serif";
-    const titleByMode = {
-      ready: "GALAXY RUNNER",
-      paused: "PAUSED",
-      gameover: "MISSION FAILED",
-    };
-    ctx.fillText(titleByMode[game.state.mode] || "GALAXY RUNNER", PLAYFIELD.width / 2, PLAYFIELD.height / 2 - 42);
+    ctx.fillText("GALAXY RUNNER", PLAYFIELD.width / 2, 122);
     ctx.font = "600 18px Segoe UI, Noto Sans KR, sans-serif";
     ctx.fillStyle = "rgba(239, 250, 255, 0.82)";
-    const subtitleByMode = {
-      ready: "Break upward",
-      paused: "P / Esc to resume",
-      gameover: `Distance ${Math.floor(game.state.distance)}m / Score ${Math.floor(game.state.score)} / Continue ${game.state.continues}`,
-    };
-    ctx.fillText(subtitleByMode[game.state.mode] || "", PLAYFIELD.width / 2, PLAYFIELD.height / 2 - 5);
+    ctx.fillText("시작 함선을 선택하세요", PLAYFIELD.width / 2, 166);
+    LoadoutSelector.draw(ctx, game);
     ctx.fillStyle = "#8fe7ff";
-    const actionByMode = {
-      ready: "Space",
-      paused: "Paused",
-      gameover: "Space Continue / R Restart",
-    };
-    ctx.fillText(actionByMode[game.state.mode] || "Space", PLAYFIELD.width / 2, PLAYFIELD.height / 2 + 38);
-    if (game.state.mode === "paused") {
-      if (game.infoPanelOpen) GameOverlay.drawGameInfoPanel(ctx, game);
-      GameOverlay.drawGameInfoButton(ctx, game.infoPanelOpen);
-    }
-    ctx.restore();
+    ctx.fillText("←/A · D/→ 또는 1~4 선택 · Space 시작", PLAYFIELD.width / 2, 326);
+  }
+
+  static drawGameOver(ctx, game) {
+    const assisted = RunRules.isAssisted(game.state);
+    ctx.fillStyle = "#f6fbff";
+    ctx.font = "800 38px Segoe UI, Noto Sans KR, sans-serif";
+    ctx.fillText(assisted ? "임무 실패 · ASSISTED" : "임무 실패", PLAYFIELD.width / 2, PLAYFIELD.height / 2 - 64);
+    ctx.font = "600 18px Segoe UI, Noto Sans KR, sans-serif";
+    ctx.fillStyle = "rgba(239, 250, 255, 0.82)";
+    ctx.fillText(
+      `거리 ${Math.floor(game.state.distance)}m / 점수 ${Math.floor(game.state.score)} / Assist ${game.state.continues}`,
+      PLAYFIELD.width / 2,
+      PLAYFIELD.height / 2 - 22
+    );
+    ctx.fillStyle = "#ffcf8f";
+    ctx.fillText("Space: 강화와 진행을 보존하는 Assist Continue", PLAYFIELD.width / 2, PLAYFIELD.height / 2 + 20);
+    ctx.fillStyle = "#8fe7ff";
+    ctx.fillText("R: 시작 함선 선택으로 돌아가기", PLAYFIELD.width / 2, PLAYFIELD.height / 2 + 58);
+  }
+
+  static drawPaused(ctx, game) {
+    ctx.fillStyle = "#f6fbff";
+    ctx.font = "800 38px Segoe UI, Noto Sans KR, sans-serif";
+    ctx.fillText("일시정지", PLAYFIELD.width / 2, PLAYFIELD.height / 2 - 42);
+    ctx.font = "600 18px Segoe UI, Noto Sans KR, sans-serif";
+    ctx.fillStyle = "rgba(239, 250, 255, 0.82)";
+    ctx.fillText("P / Esc: 계속하기", PLAYFIELD.width / 2, PLAYFIELD.height / 2 - 5);
+    ctx.fillStyle = "#8fe7ff";
+    ctx.fillText("I: 게임 정보", PLAYFIELD.width / 2, PLAYFIELD.height / 2 + 38);
+    if (game.infoPanelOpen) GameOverlay.drawGameInfoPanel(ctx, game);
+    GameOverlay.drawGameInfoButton(ctx, game.infoPanelOpen);
   }
 
   static drawGameInfoButton(ctx, infoPanelOpen) {

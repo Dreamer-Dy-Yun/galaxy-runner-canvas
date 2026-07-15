@@ -12,6 +12,7 @@ class GameSceneRenderer {
     for (const explosion of game.explosions) explosion.draw(ctx);
     for (const particle of game.particles) particle.draw(ctx);
     GameHud.draw(ctx, game);
+    game.feedbackView?.draw(ctx, game.feedback);
     GameOverlay.draw(ctx, game);
   }
 

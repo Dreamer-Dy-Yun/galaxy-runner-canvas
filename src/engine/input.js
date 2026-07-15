@@ -5,11 +5,14 @@ class InputController {
   constructor(game, restartButton, options = {}) {
     this.game = game;
     this.target = options.target || game;
+    this.keyTarget = options.keyTarget || globalThis.window;
+    this.visibilityTarget = options.visibilityTarget || globalThis.document;
     this.actionMap =
       options.actionMap || (typeof ActionMap === "function" ? ActionMap.fromConfig() : null);
     this.inputState =
       options.inputState || (typeof InputState === "function" ? new InputState(this.actionMap) : null);
     this.keys = new Set();
+    this.inputResetVersion = 0;
     this.controlCodes = new Set(this.actionMap?.preventDefaultCodes || INPUT_CONFIG.preventDefaultCodes);
     this.restartButton = restartButton;
 
@@ -20,16 +23,28 @@ class InputController {
         this.inputState?.releaseCode(event.code);
       }
     };
+    this.onBlur = () => this.resetInput();
+    this.onVisibilityChange = () => {
+      if (
+        this.visibilityTarget?.hidden === true ||
+        this.visibilityTarget?.visibilityState === "hidden"
+      ) {
+        this.resetInput();
+      }
+    };
     this.onRestartClick = (event) => {
       this.dispatchAction({ name: "restart", phase: "pressed", source: "restartButton", sourceEvent: event });
     };
     this.onCanvasClick = (event) => {
+      this.focusCanvas();
       this.dispatchAction({ name: "info", phase: "pressed", source: "canvas", sourceEvent: event });
     };
 
     if (!game || !game.canvas) return;
-    window.addEventListener("keydown", this.onKeyDown);
-    window.addEventListener("keyup", this.onKeyUp);
+    this.keyTarget?.addEventListener?.("keydown", this.onKeyDown);
+    this.keyTarget?.addEventListener?.("keyup", this.onKeyUp);
+    this.keyTarget?.addEventListener?.("blur", this.onBlur);
+    this.visibilityTarget?.addEventListener?.("visibilitychange", this.onVisibilityChange);
     if (this.restartButton && this.restartButton.addEventListener) {
       this.restartButton.addEventListener("click", this.onRestartClick);
     }
@@ -37,16 +52,36 @@ class InputController {
   }
 
   destroy() {
-    window.removeEventListener("keydown", this.onKeyDown);
-    window.removeEventListener("keyup", this.onKeyUp);
+    this.keyTarget?.removeEventListener?.("keydown", this.onKeyDown);
+    this.keyTarget?.removeEventListener?.("keyup", this.onKeyUp);
+    this.keyTarget?.removeEventListener?.("blur", this.onBlur);
+    this.visibilityTarget?.removeEventListener?.("visibilitychange", this.onVisibilityChange);
     if (this.restartButton && this.restartButton.removeEventListener) {
       this.restartButton.removeEventListener("click", this.onRestartClick);
     }
     if (this.game?.canvas?.removeEventListener) {
       this.game.canvas.removeEventListener("click", this.onCanvasClick);
     }
+    this.resetInput();
+  }
+
+  resetInput() {
     this.keys.clear();
     this.inputState?.reset();
+    this.inputResetVersion += 1;
+  }
+
+  resetVersion() {
+    return this.inputResetVersion;
+  }
+
+  focusCanvas() {
+    if (typeof this.game?.canvas?.focus !== "function") return;
+    try {
+      this.game.canvas.focus({ preventScroll: true });
+    } catch {
+      this.game.canvas.focus();
+    }
   }
 
   handleKeyDown(event) {

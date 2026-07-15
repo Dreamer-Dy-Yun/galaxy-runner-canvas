@@ -52,9 +52,11 @@
 
     const canvas = document.getElementById("game");
     const restartButton = document.getElementById("restart");
+    const muteButton = document.getElementById("audio-toggle");
+    const liveRegion = document.getElementById("game-status");
 
-    if (!canvas || !(canvas instanceof HTMLCanvasElement) || !restartButton) {
-      console.error("[Galaxy Runner] Failed to initialize: missing #game canvas or #restart button.");
+    if (!canvas || !(canvas instanceof HTMLCanvasElement) || !restartButton || !muteButton || !liveRegion) {
+      console.error("[Galaxy Runner] Failed to initialize: missing required game surface or accessibility controls.");
       return;
     }
 
@@ -66,6 +68,12 @@
     warmupStartupAssets();
 
     const game = new Game(surface, restartButton);
+    const accessibility = new GameAccessibility({ liveRegion }).attach(game.feedback);
+    const gameAudio = new GameAudio().attach({
+      feedback: game.feedback,
+      gestureTarget: globalThis.window || document,
+      muteButton,
+    });
     const sceneManager = new SceneManager();
     sceneManager.register("game", game);
     sceneManager.switchTo("game");
@@ -86,27 +94,69 @@
     debugOverlay.attach(runtime);
     globalThis.GalaxyRunnerDebug = debugOverlay;
     globalThis.GalaxyRunnerFrameProfiler = frameProfiler;
+    globalThis.GalaxyRunnerAudio = gameAudio;
     globalThis.GalaxyRunnerStatus = () => createStatusSnapshot({
       game,
       runtime,
       debugOverlay,
       frameProfiler,
+      gameAudio,
+    });
+
+    globalThis.addEventListener?.("pagehide", (event) => {
+      if (event?.persisted === true) return;
+      accessibility.detach();
+      gameAudio.destroy();
     });
 
     runtime.start();
   }
 
-  function createStatusSnapshot({ game, runtime, debugOverlay, frameProfiler }) {
+  function createStatusSnapshot({ game, runtime, debugOverlay, frameProfiler, gameAudio }) {
     const profilerSnapshot = frameProfiler.snapshot();
+    const feedback = game.feedback?.current?.() || null;
+    const entities = createEntityCountSnapshot(game);
     return Object.freeze({
       mode: typeof game.state?.mode === "string" ? game.state.mode : null,
       distance: finiteOrNull(game.state?.distance),
       score: finiteOrNull(game.state?.score),
       hp: finiteOrNull(game.player?.health),
+      selectedStartingWeapon: game.state?.startingWeaponKind || null,
+      activeWeapon: game.player?.activeWeaponKind?.() || null,
+      continues: finiteOrNull(game.state?.continues),
+      assisted: RunRules.isAssisted(game.state),
+      infoPanelOpen: game.infoPanelOpen === true,
+      feedback: feedback
+        ? Object.freeze({ type: feedback.type, reason: feedback.details?.reason || null })
+        : null,
+      input: Object.freeze({
+        moveLeft: game.input?.isDown?.("moveLeft") === true,
+        moveRight: game.input?.isDown?.("moveRight") === true,
+        fire: game.input?.isDown?.("fire") === true,
+      }),
+      entities,
+      frame: Object.freeze({
+        p95Ms: finiteOrNull(profilerSnapshot.frame?.p95),
+        maxMs: finiteOrNull(profilerSnapshot.frame?.max),
+      }),
+      audioMuted: gameAudio?.isMuted?.() === true,
       runtimeRunning: runtime.running === true,
       debugEnabled: debugOverlay.enabled === true,
       profilerSampleCount: finiteOrNull(profilerSnapshot.sampleCount),
     });
+  }
+
+  function createEntityCountSnapshot(game) {
+    const snapshot = {
+      friendlyProjectiles: Array.isArray(game.bullets) ? game.bullets.length : 0,
+      hostileProjectiles: Array.isArray(game.enemyBullets) ? game.enemyBullets.length : 0,
+      actors: Array.isArray(game.enemies) ? game.enemies.length : 0,
+      collectibles: Array.isArray(game.items) ? game.items.length : 0,
+      effects: Array.isArray(game.explosions) ? game.explosions.length : 0,
+      particles: Array.isArray(game.particles) ? game.particles.length : 0,
+    };
+    snapshot.total = Object.values(snapshot).reduce((total, count) => total + count, 0);
+    return Object.freeze(snapshot);
   }
 
   function finiteOrNull(value) {

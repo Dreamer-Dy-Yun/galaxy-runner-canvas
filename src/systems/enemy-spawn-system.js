@@ -72,6 +72,7 @@ class EnemySpawnSystem {
 
   static spawnMidBoss(game) {
     game.registerEnemy(new Enemy(game.state.danger, "midboss"));
+    game.feedback?.emit("boss.spawned", { role: "midboss", stage: game.state.stage });
     game.state.nextMidBoss = game.state.time + GAME_CONFIG.bosses.midBossRepeatDelay;
     if (game.state.nextBoss - game.state.nextMidBoss < GAME_CONFIG.bosses.midBossBossGap) {
       game.state.nextMidBoss = game.state.nextBoss + GAME_CONFIG.bosses.midBossAfterBossDelay;
@@ -80,6 +81,7 @@ class EnemySpawnSystem {
 
   static spawnBoss(game) {
     game.registerEnemy(new Enemy(game.state.danger, "boss", { stage: game.state.stage }));
+    game.feedback?.emit("boss.spawned", { role: "boss", stage: game.state.stage });
     game.state.nextBoss = game.state.time + GAME_CONFIG.bosses.bossRepeatDelay;
     game.state.nextMidBoss = Math.max(
       game.state.nextMidBoss,

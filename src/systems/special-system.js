@@ -1,5 +1,5 @@
 // Galaxy Runner - special skill system
-// Ctrl spends a slowly building meter. This is separate from any future hold-to-charge system.
+// X/Ctrl spends a slowly building meter. This is separate from any future hold-to-charge system.
 
 class SpecialSystem {
   static isSpecialDown(input) {
@@ -9,9 +9,16 @@ class SpecialSystem {
   static update(player, dt, game) {
     SpecialSystem.gain(player, SPECIAL_CONFIG.passiveRegenPerSecond * dt);
 
+    const inputResetVersion = game.input?.resetVersion?.() ?? 0;
+    if (player.specialInputResetVersion !== inputResetVersion) {
+      player.wasSpecialDown = false;
+      player.specialInputResetVersion = inputResetVersion;
+    }
+
     const specialDown = SpecialSystem.isSpecialDown(game.input);
     if (specialDown && !player.wasSpecialDown) {
-      SpecialSystem.tryUse(player, game);
+      const result = SpecialSystem.tryUse(player, game);
+      game.feedback?.emit(result.ok ? "special.used" : "special.failed", result);
     }
 
     player.wasSpecialDown = specialDown;
@@ -81,22 +88,34 @@ class SpecialSystem {
 
   static tryUse(player, game) {
     const kind = player.activeWeaponKind?.();
-    if (!kind) return false;
+    if (!kind) return SpecialSystem.result(false, null, { reason: "no-weapon" });
 
     if (kind === "nova") return SpecialSystem.dropNovaMine(player, game);
 
     const cost = SpecialSystem.tierCost(player);
-    if (cost <= 0 || !SpecialSystem.canSpend(player, cost) || !SpecialSystem.tierConfig(kind, cost)) return false;
+    if (cost <= 0 || !SpecialSystem.canSpend(player, cost)) {
+      return SpecialSystem.result(false, kind, {
+        reason: "insufficient-meter",
+        required: SpecialSystem.minimumCost(kind),
+      });
+    }
+    if (!SpecialSystem.tierConfig(kind, cost)) {
+      return SpecialSystem.result(false, kind, { reason: "unavailable", cost });
+    }
 
     let fired = false;
     if (kind === "rapid") fired = SpecialSystem.fireRapid(player, game, cost);
     else if (kind === "energy") fired = SpecialSystem.fireEnergy(player, game, cost);
     else if (kind === "spread") fired = SpecialSystem.fireSpread(player, game, cost);
 
-    if (!fired) return false;
+    if (!fired) return SpecialSystem.result(false, kind, { reason: "unavailable", cost });
     SpecialSystem.spend(player, cost);
 
-    return true;
+    return SpecialSystem.result(true, kind, { cost });
+  }
+
+  static result(ok, kind, details = {}) {
+    return Object.freeze({ ok: ok === true, kind: kind || null, ...details });
   }
 
   static level(player, kind) {
@@ -187,8 +206,20 @@ class SpecialSystem {
 
   static dropNovaMine(player, game) {
     const cost = SPECIAL_CONFIG.nova.cost;
-    if (SpecialSystem.activeNovaMineCount(game) >= SPECIAL_CONFIG.nova.maxMines) return false;
-    if (!SpecialSystem.canSpend(player, cost)) return false;
+    const active = SpecialSystem.activeNovaMineCount(game);
+    if (active >= SPECIAL_CONFIG.nova.maxMines) {
+      return SpecialSystem.result(false, "nova", {
+        reason: "nova-cap",
+        active,
+        maximum: SPECIAL_CONFIG.nova.maxMines,
+      });
+    }
+    if (!SpecialSystem.canSpend(player, cost)) {
+      return SpecialSystem.result(false, "nova", {
+        reason: "insufficient-meter",
+        required: cost,
+      });
+    }
 
     const level = SpecialSystem.level(player, "nova");
     const damage = SpecialSystem.scaledDamage(player, "nova", SPECIAL_CONFIG.nova.damageScale, 0);
@@ -211,6 +242,9 @@ class SpecialSystem {
       }
     );
     game.burst(player.x, player.y - SPECIAL_CONFIG.nova.yOffset, SPECIAL_CONFIG.nova.color, SPECIAL_CONFIG.nova.burst);
-    return SpecialSystem.spend(player, cost);
+    if (!SpecialSystem.spend(player, cost)) {
+      return SpecialSystem.result(false, "nova", { reason: "insufficient-meter", required: cost });
+    }
+    return SpecialSystem.result(true, "nova", { cost });
   }
 }

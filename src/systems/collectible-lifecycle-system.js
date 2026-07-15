@@ -24,7 +24,8 @@ class CollectibleLifecycleSystem {
       if (item.expired) continue;
 
       if (CollisionQuery.overlaps(item, game.player, { aRadius: item.radius, bRadius: pickupRadius })) {
-        game.player.collect(item, game);
+        const result = game.player.collect(item, game);
+        if (result) game.feedback?.emit("item.collected", result);
         continue;
       }
 

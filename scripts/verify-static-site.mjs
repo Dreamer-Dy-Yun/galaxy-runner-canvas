@@ -3,6 +3,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { verifyClassicScriptContract } from "./classic-script-contract.mjs";
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -87,12 +88,14 @@ export async function verifyStaticSite({ root = projectRoot } = {}) {
 
   await verifyJavascriptSyntax(javascriptFiles);
   const references = await verifyHtmlReferences(htmlFiles, siteRoot);
+  const classicScriptContract = await verifyClassicScriptContract({ root: siteRoot });
 
   return {
     root: siteRoot,
     javascriptFileCount: javascriptFiles.length,
     htmlFileCount: htmlFiles.length,
     localScriptReferenceCount: references.length,
+    classicScriptReferenceCount: classicScriptContract.scriptCount,
   };
 }
 
@@ -100,7 +103,8 @@ async function run() {
   const result = await verifyStaticSite();
   console.log(
     `[verify:static] ${result.javascriptFileCount} JavaScript files, ` +
-      `${result.htmlFileCount} HTML files, ${result.localScriptReferenceCount} local script references verified.`
+      `${result.htmlFileCount} HTML files, ${result.localScriptReferenceCount} local script references, ` +
+      `${result.classicScriptReferenceCount} ordered classic scripts verified.`
   );
 }
 

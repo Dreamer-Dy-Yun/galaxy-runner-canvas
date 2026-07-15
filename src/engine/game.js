@@ -13,6 +13,8 @@ class Game {
       novaMines: [],
     };
 
+    this.feedback = new GameFeedbackSystem();
+    this.feedbackView = new GameFeedback();
     this.input = new InputController(this, restartButton);
     this.background = new SpaceBackground();
     this.infoPanelOpen = false;
@@ -34,8 +36,11 @@ class Game {
   }
 
   reset() {
-    this.state = { ...GAME_CONFIG.initialState };
+    const startingWeaponKind = RunRules.normalizeStartingWeapon(this.state?.startingWeaponKind);
+    this.state = { ...GAME_CONFIG.initialState, startingWeaponKind };
 
+    this.infoPanelOpen = false;
+    this.feedback.clear();
     this.player.reset();
     this.bossCount = 0;
     this.resetEntityGroups();

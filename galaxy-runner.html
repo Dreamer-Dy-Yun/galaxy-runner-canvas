@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,15 +9,24 @@
     <script defer src="src/gameplay/weapon-definition.js"></script>
     <script defer src="src/gameplay/weapon-catalog.js"></script>
     <script defer src="src/gameplay/weapon-definitions.js"></script>
+    <script defer src="src/gameplay/run-rules.js"></script>
+    <script defer src="src/gameplay/player-defense-rules.js"></script>
     <script defer src="src/gameplay/item-definitions.js"></script>
     <script defer src="src/gameplay/game-config.js"></script>
     <script defer src="src/gameplay/game-info.js"></script>
+    <script defer src="src/systems/game-feedback-system.js"></script>
+    <script defer src="src/ui/game-feedback-messages.js"></script>
+    <script defer src="src/ui/game-feedback.js"></script>
+    <script defer src="src/ui/game-accessibility.js"></script>
+    <script defer src="src/audio/game-audio.js"></script>
     <script defer src="src/core/asset-loader.js"></script>
     <script defer src="src/core/sprite-atlas.js"></script>
     <script defer src="src/core/collision.js"></script>
     <script defer src="src/systems/weapon-system.js"></script>
     <script defer src="src/systems/drone-system.js"></script>
     <script defer src="src/systems/special-system.js"></script>
+    <script defer src="src/systems/player-defense-system.js"></script>
+    <script defer src="src/systems/player-progression-system.js"></script>
     <script defer src="src/systems/boss-ai.js"></script>
     <script defer src="src/systems/game-session-system.js"></script>
     <script defer src="src/systems/game-loop-system.js"></script>
@@ -43,6 +52,7 @@
     <script defer src="src/entities/collectible-item.js"></script>
     <script defer src="src/entities/player.js"></script>
     <script defer src="src/ui/game-hud.js"></script>
+    <script defer src="src/ui/loadout-selector.js"></script>
     <script defer src="src/ui/game-overlay.js"></script>
     <script defer src="src/renderers/game-scene-renderer.js"></script>
     <script defer src="src/engine/game.js"></script>
@@ -53,13 +63,24 @@
       <div class="topbar">
         <div>
           <h1>Galaxy Runner</h1>
-          <p class="hint">Arrow/WASD Move - Space Fire - Ctrl Special - P/Esc Pause - R Restart</p>
         </div>
-        <button id="restart" type="button">Restart</button>
+        <p id="game-controls" class="hint">방향키/WASD 이동 · Space 발사 · X/Ctrl 특수기 · P/Esc 일시정지 · I 정보 · R 처음부터</p>
+        <button id="audio-toggle" type="button" aria-label="게임 소리 끄기" aria-pressed="false">소리 켬</button>
+        <button id="restart" type="button">처음부터</button>
       </div>
       <div class="stage">
-        <canvas id="game" width="960" height="540"></canvas>
+        <canvas
+          id="game"
+          width="960"
+          height="540"
+          tabindex="0"
+          aria-label="Galaxy Runner 슈팅 게임 화면"
+          aria-describedby="game-controls"
+        >
+          Galaxy Runner는 키보드로 조작하는 Canvas 슈팅 게임입니다. 방향키 또는 WASD로 이동하고 Space로 발사합니다.
+        </canvas>
       </div>
+      <div id="game-status" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
     </main>
   </body>
 </html>

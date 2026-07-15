@@ -6,7 +6,7 @@
 
 ## 파일 책임
 
-- `pages.yml`: `main` push 또는 수동 실행 시 Node/pnpm 환경을 고정하고 frozen install → unit/static test → `dist` build → Playwright Chromium smoke를 실행한다. 모든 gate가 성공한 뒤에만 `dist`를 GitHub Pages artifact로 업로드하고 배포한다.
+- `pages.yml`: `main` push 또는 수동 실행 시 Node/pnpm 환경을 고정하고 frozen install → unit/static test → `dist` build → Playwright Chromium smoke → seeded soak를 실행한다. 모든 gate가 성공한 뒤에만 `dist`를 GitHub Pages artifact로 업로드하고 배포한다.
 
 ## Pages 실행 순서
 
@@ -15,7 +15,8 @@
 3. `pnpm run test:run`으로 source와 Node contract를 검증한다.
 4. `pnpm run build`로 배포 전용 `dist` artifact를 만든다.
 5. 공식 Playwright Chromium을 설치하고 `pnpm run test:browser`로 실제 상태 전이와 browser 오류 부재를 검증한다.
-6. 앞 단계가 모두 성공하면 Pages를 구성하고 `dist`만 업로드·배포한다.
+6. `pnpm run test:soak`로 bounded entity/frame 상태와 background 입력 복구를 짧게 검증한다.
+7. 앞 단계가 모두 성공하면 Pages를 구성하고 `dist`만 업로드·배포한다.
 
 ## 경계
 

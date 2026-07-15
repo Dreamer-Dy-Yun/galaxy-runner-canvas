@@ -11,7 +11,8 @@
     "verify:static": "node scripts/verify-static-site.mjs",
     "test:run": "node scripts/verify-static-site.mjs && node --test",
     "build": "node scripts/build-static-site.mjs",
-    "test:browser": "node tests/browser-smoke.mjs"
+    "test:browser": "node tests/browser-smoke.mjs",
+    "test:soak": "node tests/browser-soak.mjs"
   },
   "devDependencies": {
     "playwright": "^1.61.1"
