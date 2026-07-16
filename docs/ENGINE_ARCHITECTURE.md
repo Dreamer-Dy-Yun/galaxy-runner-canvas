@@ -4,7 +4,7 @@
 
 - 작성일: 2026-05-18
 - 최근 계약 갱신: 2026-07-16
-- 기준 작업: `mulAg/md/plan/active/PLAN-2026-07-16-opening-player-animation-redesign.md`
+- 기준 작업: `mulAg/md/plan/PLAN-2026-07-16-opening-player-animation-redesign.md`
 - 기준 TODO: `TODO-RIG-ANIMATION-ENGINE-001`, `TODO-PLAYER-RIG-ADAPTER-003`, `TODO-OPENING-ROUTE-CHOICE-004`
 - 범위: 엔진 계약과 책임 경계, 공통 rig transition/pose lifecycle, 게임 opening adapter 경계 문서화
 - 제외 범위: 전체 `EngineRuntime` 재구축, 무기/특수기 밸런스 변경, 승인된 final-form 기체 디자인 교체

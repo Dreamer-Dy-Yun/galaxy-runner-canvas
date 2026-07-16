@@ -6,23 +6,23 @@
 
 ## 상태
 
-- 현재 상태: 구현 및 로컬 통합 QA 완료, feature branch 배포 대기
+- 현재 상태: 구현, 독립 QA, feature branch 선배포, main 병합·배포 완료
 - 코드 수정: 공통 rig engine, 4노선 transition 자산, Player adapter, opening route choice 반영 완료
-- 배포: feature branch와 main 모두 아직 미배포
+- 배포: feature run `29469336137`, main run `29469442296` success
 - 하드닝 모듈 수정: 사용자가 전체 수정·배포를 명시 승인하여 이번 plan 범위에서 수행
 - 2026-07-16 추가 결정: 파츠 pose·탈착·결합은 플레이어별 구현이 아니라 공통 엔진으로 처리
 
 ## 현재 기준
 
-- 브랜치/기준 HEAD: `codex/rig-animation-engine` / `a2cea56`
-- 원격 상태: `origin/main`과 일치
-- 작업 트리: 조사 시작 시 clean
+- 브랜치/완료 HEAD: `main` / `f2cfaceb5a9e52c748240db9a919af0ef867d7e9`
+- 원격 상태: `main == origin/main`, feature branch도 같은 구현 SHA
+- 작업 트리: clean
 - `pnpm run test:run`: 76/76 PASS
 - `pnpm run build`: PASS, 190 files
 - `pnpm run test:browser`: PASS
 - `pnpm run test:soak`: PASS, 12,000ms, entity high-water 33, final 11
-- 배포 화면: `https://dreamer-dy-yun.github.io/galaxy-runner-canvas/galaxy-runner.html?v=a2cea56`
-- 배포 화면에서 ready 선택 후 Space를 누르면 선택된 완성 기체 PNG가 즉시 표시되는 것을 확인
+- 배포 화면: `https://dreamer-dy-yun.github.io/galaxy-runner-canvas/galaxy-runner.html?v=f2cface-main`
+- live HTML의 pose module 참조, 제거된 loadout 미참조, Rapid runtime asset 200 응답을 확인
 
 ## 목표
 

@@ -6,13 +6,13 @@
 
 ## 참조 plan / todo
 
-- `mulAg/md/plan/active/PLAN-2026-07-16-opening-player-animation-redesign.md`
+- `mulAg/md/plan/PLAN-2026-07-16-opening-player-animation-redesign.md`
 - `mulAg/md/todo/TODO-RIG-ANIMATION-QA-005.md`
 - 구현 review 4개
 
 ## 최종 판정
 
-**PASS — 기능 구현과 로컬 배포 gate를 통과했다. commit/push/workflow/live 증거는 아직 없다.**
+**PASS — 기능 구현, 로컬 gate, feature branch 선배포, main 병합·배포와 live 확인을 모두 통과했다.**
 
 ## 독립 QA 범위
 
@@ -45,15 +45,22 @@
 - U+FFFD 없음, classic provider 순서와 native `AnimationTimeline` 충돌 회귀 PASS.
 - headless 1920×900 확인에서 기본 기체와 4개 route icon이 동시에 표시됐다.
 
+## 배포 증거
+
+- 구현 SHA: `f2cfaceb5a9e52c748240db9a919af0ef867d7e9`
+- feature branch workflow: `29469336137`, success, Pages artifact/deploy success
+- main workflow: `29469442296`, success, 동일 SHA의 push-triggered Pages deploy
+- feature 최초 run `29469285897`은 environment가 main만 허용해 job 시작 전 거절됐다. 정확한 feature branch policy만 임시 추가해 성공 배포한 뒤 제거했고, 최종 environment policy는 다시 main-only다.
+- live HTML 200, `pose-channel-state.js` 참조 확인, 삭제된 `loadout-selector.js` 미참조, Rapid runtime part 200/66,893 bytes 확인.
+
 ## 비차단 기존 경고
 
 - browser warning 1건: `[Gameplay Contract] Unknown weapon kind "bonus".` 기존 fixture/startup warning이며 error는 아니다.
 - 12초 soak는 배포 gate이지 장시간 memory 인증은 아니다.
-- 실제 Pages workflow와 live URL은 push 후 별도 증명해야 한다.
 
 ## 최종 verdict
 
 - 기능 계약: PASS
 - 로컬 배포 준비: PASS
 - MulAg 구현 QA: PASS
-- 실제 배포 완료: 아직 아님
+- 실제 배포 완료: PASS

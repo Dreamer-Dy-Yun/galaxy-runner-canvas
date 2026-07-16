@@ -6,7 +6,7 @@
 
 ## 참조 plan
 
-- `mulAg/md/plan/active/PLAN-2026-07-16-opening-player-animation-redesign.md`
+- `mulAg/md/plan/PLAN-2026-07-16-opening-player-animation-redesign.md`
 
 ## 작업 범위
 

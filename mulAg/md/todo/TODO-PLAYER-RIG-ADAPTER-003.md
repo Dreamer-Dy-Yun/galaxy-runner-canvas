@@ -6,7 +6,7 @@ Player의 이동·강화 상태를 공통 `RigAnimationEngine` request로 변환
 
 ## 참조 plan
 
-- `mulAg/md/plan/active/PLAN-2026-07-16-opening-player-animation-redesign.md`
+- `mulAg/md/plan/PLAN-2026-07-16-opening-player-animation-redesign.md`
 
 ## 작업 범위
 
