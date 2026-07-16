@@ -14,40 +14,35 @@ async function loadRunRules() {
   return loadClassicScripts(runRuleScripts);
 }
 
-test("run rules expose one frozen canonical starting-weapon order", async () => {
+test("run rules expose one frozen canonical route-choice layout", async () => {
   const context = await loadRunRules();
   const kinds = context.RunRules.weaponKinds();
 
   assert.deepEqual([...kinds], ["rapid", "energy", "spread", "nova"]);
   assert.equal(Object.isFrozen(kinds), true);
   assert.equal(Object.isFrozen(context.RUN_RULES), true);
-  assert.equal(Object.isFrozen(context.RUN_RULES.startingWeapon), true);
-  assert.equal(context.RUN_RULES.startingWeapon.defaultKind, "rapid");
+  assert.equal(Object.isFrozen(context.RUN_RULES.opening.choices), true);
+  assert.deepEqual(
+    context.RUN_RULES.opening.choices.map((choice) => choice.kind).join(","),
+    "rapid,energy,spread,nova"
+  );
 });
 
-test("starting-weapon normalization and cycling are deterministic and wrap", async () => {
+test("ready, base launch, route choice, and route lock are explicit", async () => {
   const { RunRules } = await loadRunRules();
-
-  assert.equal(RunRules.normalizeStartingWeapon("energy"), "energy");
-  assert.equal(RunRules.normalizeStartingWeapon("unknown"), "rapid");
-  assert.equal(RunRules.normalizeStartingWeapon(null), "rapid");
-  assert.equal(RunRules.cycleStartingWeapon("rapid", -1), "nova");
-  assert.equal(RunRules.cycleStartingWeapon("nova", 1), "rapid");
-  assert.equal(RunRules.cycleStartingWeapon("rapid", -5), "nova");
-  assert.equal(RunRules.cycleStartingWeapon("rapid", 5), "energy");
-  assert.equal(RunRules.cycleStartingWeapon("spread", 0), "spread");
-});
-
-test("movement and numeric actions resolve through the same selection contract", async () => {
-  const { RunRules } = await loadRunRules();
-
-  assert.equal(RunRules.weaponForAction("moveLeft", "rapid"), "nova");
-  assert.equal(RunRules.weaponForAction("moveRight", "rapid"), "energy");
-  assert.equal(RunRules.weaponForAction("selectWeapon1", "nova"), "rapid");
-  assert.equal(RunRules.weaponForAction("selectWeapon2", "rapid"), "energy");
-  assert.equal(RunRules.weaponForAction("selectWeapon3", "rapid"), "spread");
-  assert.equal(RunRules.weaponForAction("selectWeapon4", "rapid"), "nova");
-  assert.equal(RunRules.weaponForAction("start", "rapid"), null);
+  const state = RunRules.createReadyState();
+  assert.deepEqual(
+    { ...state },
+    { runPhase: null, runPhaseElapsed: 0, routeChoicesSpawned: false, selectedWeaponKind: null }
+  );
+  assert.equal(RunRules.beginOpening(state), true);
+  assert.equal(state.runPhase, "baseLaunch");
+  assert.equal(RunRules.enterRouteChoice(state), true);
+  assert.equal(state.runPhase, "routeChoice");
+  assert.equal(RunRules.lockRoute(state, "unknown"), false);
+  assert.equal(RunRules.lockRoute(state, "energy"), true);
+  assert.equal(RunRules.routeKind(state), "energy");
+  assert.equal(state.runPhase, "combat");
 });
 
 test("Assist status is derived only from a positive finite Continue count", async () => {

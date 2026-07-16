@@ -72,24 +72,21 @@ async function createInputHarness() {
 
 function createSessionGame(Game) {
   const clearedGroups = [];
+  const pauseStates = [];
   const weaponLevels = { rapid: 0, energy: 0, spread: 0, nova: 0 };
   const player = {
     continueCount: 0,
     resetCount: 0,
     upgradeMarker: 0,
+    rigAnimationAdapter: { setPaused(value) { pauseStates.push(value); } },
     reset() {
       this.resetCount += 1;
       for (const kind of Object.keys(weaponLevels)) weaponLevels[kind] = 0;
     },
-    equipWeapon(kind) {
-      for (const weaponKind of Object.keys(weaponLevels)) weaponLevels[weaponKind] = 0;
-      weaponLevels[kind] = 1;
-      return true;
-    },
     continue() { this.continueCount += 1; },
   };
   const game = Object.create(Game.prototype);
-  game.state = { startingWeaponKind: "rapid" };
+  game.state = {};
   game.player = player;
   game.feedback = { clear() {} };
   game.projectileCollisionContext = { energyAbsorbers: [], novaMines: [] };
@@ -97,7 +94,7 @@ function createSessionGame(Game) {
   game.resetEntityGroups = () => {};
   game.infoPanelOpen = false;
   game.reset();
-  return { clearedGroups, game, player, weaponLevels };
+  return { clearedGroups, game, pauseStates, player, weaponLevels };
 }
 
 async function loadSession() {
@@ -135,15 +132,11 @@ test("input dispatches Space once in start-then-fire order and clears transients
   assert.deepEqual(actions.map((action) => action.name), ["start", "fire", "start", "fire"]);
 });
 
-test("action map exposes movement and numeric loadout actions", async () => {
+test("action map exposes movement and ignores removed numeric loadout actions", async () => {
   const { actions, keyTarget } = await createInputHarness();
   const cases = [
     ["ArrowLeft", "moveLeft"],
     ["KeyD", "moveRight"],
-    ["Digit1", "selectWeapon1"],
-    ["Digit2", "selectWeapon2"],
-    ["Digit3", "selectWeapon3"],
-    ["Digit4", "selectWeapon4"],
   ];
 
   for (const [code, expectedAction] of cases) {
@@ -151,6 +144,10 @@ test("action map exposes movement and numeric loadout actions", async () => {
     keyTarget.emit("keyup", { code });
     assert.equal(actions.at(-1).name, expectedAction);
   }
+  const beforeDigit = actions.length;
+  keyTarget.emit("keydown", { code: "Digit1" });
+  keyTarget.emit("keyup", { code: "Digit1" });
+  assert.equal(actions.length, beforeDigit);
 });
 
 test("blur, hidden visibility, and destroy reset held input and detach listeners", async () => {
@@ -186,25 +183,29 @@ test("blur, hidden visibility, and destroy reset held input and detach listeners
   assert.equal(actions.length, actionCount);
 });
 
-test("ready selection starts only the chosen weapon and Restart returns to ready", async () => {
+test("ready starts the base ship opening and Restart clears the selected route", async () => {
   const { Game } = await loadSession();
   const { game, player, weaponLevels } = createSessionGame(Game);
 
-  assert.equal(game.state.startingWeaponKind, "rapid");
-  assert.equal(game.handleAction({ name: "moveRight", phase: "pressed" }), true);
-  assert.equal(game.state.startingWeaponKind, "energy");
-  assert.equal(game.handleAction({ name: "selectWeapon4", phase: "pressed" }), true);
-  assert.equal(game.state.startingWeaponKind, "nova");
+  assert.equal(game.state.selectedWeaponKind, null);
+  assert.equal(game.handleAction({ name: "moveRight", phase: "pressed" }), false);
 
   game.handleAction({ name: "start", phase: "pressed" });
   assert.equal(game.state.mode, "running");
-  assert.deepEqual(weaponLevels, { rapid: 0, energy: 0, spread: 0, nova: 1 });
-  assert.equal(game.handleAction({ name: "moveLeft", phase: "pressed" }), false);
-  assert.equal(game.state.startingWeaponKind, "nova");
+  assert.equal(game.state.runPhase, "baseLaunch");
+  assert.equal(game.state.selectedWeaponKind, null);
+  assert.deepEqual(weaponLevels, { rapid: 0, energy: 0, spread: 0, nova: 0 });
+
+  Object.assign(game.state, {
+    runPhase: "combat",
+    selectedWeaponKind: "nova",
+  });
+  weaponLevels.nova = 1;
 
   game.handleAction({ name: "restart", phase: "pressed" });
   assert.equal(game.state.mode, "ready");
-  assert.equal(game.state.startingWeaponKind, "nova");
+  assert.equal(game.state.runPhase, null);
+  assert.equal(game.state.selectedWeaponKind, null);
   assert.deepEqual(weaponLevels, { rapid: 0, energy: 0, spread: 0, nova: 0 });
   assert.equal(player.resetCount, 2);
 });
@@ -222,7 +223,8 @@ test("Continue preserves run progress and upgrades while clearing the danger fie
     danger: 9,
     spawnTimer: 0.4,
     itemTimer: 0.3,
-    startingWeaponKind: "spread",
+    runPhase: "combat",
+    selectedWeaponKind: "spread",
   });
   player.upgradeMarker = 7;
 
@@ -233,7 +235,8 @@ test("Continue preserves run progress and upgrades while clearing the danger fie
     [game.state.distance, game.state.score, game.state.kills, game.state.time, game.state.danger],
     [1234, 5678, 42, 77, 9]
   );
-  assert.equal(game.state.startingWeaponKind, "spread");
+  assert.equal(game.state.runPhase, "combat");
+  assert.equal(game.state.selectedWeaponKind, "spread");
   assert.equal(game.state.spawnTimer, -1.2);
   assert.equal(game.state.itemTimer, -1.2);
   assert.equal(player.upgradeMarker, 7);
@@ -251,7 +254,7 @@ test("Continue preserves run progress and upgrades while clearing the danger fie
 
 test("pause changes only running and paused modes and ignores released actions", async () => {
   const { Game } = await loadSession();
-  const { game } = createSessionGame(Game);
+  const { game, pauseStates } = createSessionGame(Game);
 
   game.handleAction({ name: "pause", phase: "pressed" });
   assert.equal(game.state.mode, "ready");
@@ -262,7 +265,9 @@ test("pause changes only running and paused modes and ignores released actions",
   assert.equal(game.state.mode, "paused");
   game.handleAction({ name: "pause", phase: "pressed" });
   assert.equal(game.state.mode, "running");
+  assert.deepEqual(pauseStates, [true, false]);
   game.state.mode = "gameover";
   game.handleAction({ name: "pause", phase: "pressed" });
   assert.equal(game.state.mode, "gameover");
+  assert.deepEqual(pauseStates, [true, false]);
 });

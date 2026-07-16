@@ -152,7 +152,6 @@ const PLAYER_CONFIG = Object.freeze({
       top: 42,
       bottomPadding: 36,
     }),
-    leanMax: 0.42,
     thrust: Object.freeze({
       base: 1,
       upBoost: 0.72,
@@ -162,12 +161,6 @@ const PLAYER_CONFIG = Object.freeze({
       max: 1.85,
       ease: 9,
     }),
-  }),
-  bank: Object.freeze({
-    xScalePerLean: 0.16,
-    yScalePerLean: 0.035,
-    skewPerLean: -0.045,
-    xOffsetPerLean: 3,
   }),
   fire: Object.freeze({
     yOffset: 18,

@@ -57,7 +57,7 @@ test("main publishes a frozen read-only status snapshot without gameplay control
         distance: 12.5,
         score: 42,
         continues: 0,
-        startingWeaponKind: "rapid",
+        selectedWeaponKind: "rapid",
       };
       this.player = { health: 7, activeWeaponKind() { return null; } };
       this.feedback = { subscribe() { return () => true; }, current() { return null; } };
@@ -111,7 +111,7 @@ test("main publishes a frozen read-only status snapshot without gameplay control
       distance: status.distance,
       score: status.score,
       hp: status.hp,
-      selected: status.selectedStartingWeapon,
+      selected: status.selectedRoute,
       active: status.activeWeapon,
       assisted: status.assisted,
       entityTotal: status.entities.total,

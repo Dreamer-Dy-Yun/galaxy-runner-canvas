@@ -13,10 +13,6 @@
     moveRight: Object.freeze(["ArrowRight", "KeyD"]),
     moveUp: Object.freeze(["ArrowUp", "KeyW"]),
     moveDown: Object.freeze(["ArrowDown", "KeyS"]),
-    selectWeapon1: Object.freeze(["Digit1"]),
-    selectWeapon2: Object.freeze(["Digit2"]),
-    selectWeapon3: Object.freeze(["Digit3"]),
-    selectWeapon4: Object.freeze(["Digit4"]),
   });
 
   function configuredInput() {

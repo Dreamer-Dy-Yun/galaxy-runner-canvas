@@ -20,7 +20,7 @@ async function waitForStatus(page, expected) {
       if (requirements.mode && status.mode !== requirements.mode) return false;
       if (requirements.runtimeRunning === true && status.runtimeRunning !== true) return false;
       if (Number.isFinite(requirements.minDistance) && status.distance <= requirements.minDistance) return false;
-      if (requirements.selectedStartingWeapon && status.selectedStartingWeapon !== requirements.selectedStartingWeapon) return false;
+      if (requirements.selectedRoute && status.selectedRoute !== requirements.selectedRoute) return false;
       if ("activeWeapon" in requirements && status.activeWeapon !== requirements.activeWeapon) return false;
       if (requirements.feedbackType && status.feedback?.type !== requirements.feedbackType) return false;
       if ("infoPanelOpen" in requirements && status.infoPanelOpen !== requirements.infoPanelOpen) return false;
@@ -30,6 +30,22 @@ async function waitForStatus(page, expected) {
     { timeout: 10_000 }
   );
   return readStatus(page);
+}
+
+async function chooseEnergyRoute(page) {
+  await page.waitForFunction(() => globalThis.GalaxyRunnerStatus?.().entities?.collectibles === 4);
+  await page.keyboard.down("ArrowLeft");
+  await page.keyboard.down("ArrowUp");
+  try {
+    return await waitForStatus(page, {
+      mode: "running",
+      selectedRoute: "energy",
+      activeWeapon: "energy",
+    });
+  } finally {
+    await page.keyboard.up("ArrowLeft");
+    await page.keyboard.up("ArrowUp");
+  }
 }
 
 async function verifyScenario(browser, baseUrl, debugEnabled) {
@@ -48,7 +64,7 @@ async function verifyScenario(browser, baseUrl, debugEnabled) {
     assert.equal(ready.debugEnabled, debugEnabled);
     assert.equal(ready.runtimeRunning, true);
     assert.ok(ready.profilerSampleCount > 0, "profiler should collect frame samples");
-    assert.equal(ready.selectedStartingWeapon, "rapid");
+    assert.equal(ready.selectedRoute, null);
     assert.equal(ready.activeWeapon, null);
 
     const accessibility = await page.evaluate(() => {
@@ -76,9 +92,12 @@ async function verifyScenario(browser, baseUrl, debugEnabled) {
     assert.equal(accessibility.audioPressed, "false");
 
     await page.keyboard.press("ArrowRight");
-    await waitForStatus(page, { mode: "ready", selectedStartingWeapon: "energy", activeWeapon: null });
+    await waitForStatus(page, { mode: "ready", activeWeapon: null });
+    assert.equal((await readStatus(page)).selectedRoute, null);
 
     await page.keyboard.press("Space");
+    await waitForStatus(page, { mode: "running", activeWeapon: null });
+    await chooseEnergyRoute(page);
     const running = await waitForStatus(page, {
       mode: "running",
       minDistance: ready.distance + 2,
@@ -116,13 +135,14 @@ async function verifyScenario(browser, baseUrl, debugEnabled) {
     });
     assert.equal(restarted.mode, "ready");
     assert.equal(restarted.distance, 0, "restart should synchronously reset progress");
-    assert.equal(restarted.selectedStartingWeapon, "energy");
+    assert.equal(restarted.selectedRoute, null);
     assert.equal(restarted.activeWeapon, null);
     assert.equal(restarted.runtimeRunning, true);
     assert.equal(restarted.debugEnabled, debugEnabled);
     assert.ok(restarted.profilerSampleCount >= ready.profilerSampleCount);
 
     await page.keyboard.press("Space");
+    await chooseEnergyRoute(page);
     await waitForStatus(page, { mode: "running", minDistance: 2 });
     await page.keyboard.down("ArrowLeft");
     await page.waitForFunction(() => globalThis.GalaxyRunnerStatus().input.moveLeft === true);

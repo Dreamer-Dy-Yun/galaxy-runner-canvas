@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "runtime": {
+    "format": "PNG",
+    "colorMode": "RGBA",
+    "width": 512,
+    "height": 512,
+    "origin": "center",
+    "background": "transparent",
+    "runtimeCrop": false
+  },
+  "sources": [
+    {
+      "id": "rapid-core-direct",
+      "mode": "direct",
+      "input": "rapid-core.transparent.png",
+      "output": "../../../assets/player/rig/rapid/core.png"
+    },
+    {
+      "id": "rapid-upgrade-sheet",
+      "mode": "sheet",
+      "input": "rapid-upgrade-sheet.transparent.png",
+      "columns": 2,
+      "rows": 2,
+      "cells": [
+        {
+          "id": "rapid-pod-left",
+          "row": 0,
+          "column": 0,
+          "output": "../../../assets/player/rig/rapid/pod-left.png"
+        },
+        {
+          "id": "rapid-pod-right",
+          "row": 0,
+          "column": 1,
+          "output": "../../../assets/player/rig/rapid/pod-right.png"
+        },
+        {
+          "id": "rapid-barrel-left",
+          "row": 1,
+          "column": 0,
+          "output": "../../../assets/player/rig/rapid/barrel-left.png"
+        },
+        {
+          "id": "rapid-barrel-right",
+          "row": 1,
+          "column": 1,
+          "output": "../../../assets/player/rig/rapid/barrel-right.png"
+        }
+      ]
+    },
+    {
+      "id": "base-registered-atlas",
+      "mode": "sheet",
+      "input": "../../../assets/player/player-registered-parts-v1.png",
+      "columns": 4,
+      "rows": 3,
+      "cells": [
+        {
+          "id": "base-fuselage",
+          "row": 0,
+          "column": 0,
+          "output": "../../../assets/player/rig/base/fuselage.png"
+        },
+        {
+          "id": "base-wings",
+          "row": 0,
+          "column": 1,
+          "output": "../../../assets/player/rig/base/wings.png"
+        },
+        {
+          "id": "base-engine",
+          "row": 0,
+          "column": 2,
+          "output": "../../../assets/player/rig/base/engine.png"
+        },
+        {
+          "id": "base-cockpit",
+          "row": 0,
+          "column": 3,
+          "output": "../../../assets/player/rig/base/cockpit.png"
+        }
+      ]
+    }
+  ]
+}

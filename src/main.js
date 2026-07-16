@@ -121,7 +121,7 @@
       distance: finiteOrNull(game.state?.distance),
       score: finiteOrNull(game.state?.score),
       hp: finiteOrNull(game.player?.health),
-      selectedStartingWeapon: game.state?.startingWeaponKind || null,
+      selectedRoute: game.state?.selectedWeaponKind || null,
       activeWeapon: game.player?.activeWeaponKind?.() || null,
       continues: finiteOrNull(game.state?.continues),
       assisted: RunRules.isAssisted(game.state),

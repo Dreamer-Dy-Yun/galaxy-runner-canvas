@@ -27,6 +27,11 @@ class TestImage {
 async function createPlayer() {
   const context = await loadClassicScripts(defenseScripts, { globals: { Image: TestImage } });
   context.FinalShipArt = class FinalShipArt {};
+  context.PlayerRigArt = class PlayerRigArt {};
+  context.PlayerRigAnimationAdapter = class PlayerRigAnimationAdapter {
+    reset() {}
+    update() {}
+  };
   context.PlayerPartLayout = class PlayerPartLayout {
     constructor() { this.rigSize = 250; }
   };

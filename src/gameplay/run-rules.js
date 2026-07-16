@@ -1,22 +1,26 @@
 // Galaxy Runner - run setup and Continue contract
-// Owns starting-loadout selection and the meaning of an assisted run.
+// Owns the opening phase, route lock, and the meaning of an assisted run.
 
 (() => {
-  const STARTING_WEAPON_KINDS = Object.freeze([...WEAPON_KINDS]);
+  const ROUTE_WEAPON_KINDS = Object.freeze([...WEAPON_KINDS]);
+  const RUN_PHASES = Object.freeze({
+    baseLaunch: "baseLaunch",
+    routeChoice: "routeChoice",
+    combat: "combat",
+  });
+  const ROUTE_CHOICE_LAYOUT = Object.freeze(
+    ROUTE_WEAPON_KINDS.map((kind, index) => Object.freeze({
+      kind,
+      xRatio: (index + 1) / (ROUTE_WEAPON_KINDS.length + 1),
+      yRatio: 0.68,
+    }))
+  );
 
   const RUN_RULES = Object.freeze({
-    startingWeapon: Object.freeze({
-      defaultKind: "rapid",
-      cycleActions: Object.freeze({
-        moveLeft: -1,
-        moveRight: 1,
-      }),
-      directActions: Object.freeze({
-        selectWeapon1: 0,
-        selectWeapon2: 1,
-        selectWeapon3: 2,
-        selectWeapon4: 3,
-      }),
+    opening: Object.freeze({
+      phases: RUN_PHASES,
+      baseLaunchSeconds: 1,
+      choices: ROUTE_CHOICE_LAYOUT,
     }),
     continue: Object.freeze({
       mode: "running",
@@ -28,36 +32,49 @@
 
   class RunRules {
     static weaponKinds() {
-      return STARTING_WEAPON_KINDS;
+      return ROUTE_WEAPON_KINDS;
     }
 
-    static normalizeStartingWeapon(kind) {
-      if (STARTING_WEAPON_KINDS.includes(kind)) return kind;
-      if (STARTING_WEAPON_KINDS.includes(RUN_RULES.startingWeapon.defaultKind)) {
-        return RUN_RULES.startingWeapon.defaultKind;
-      }
-      return STARTING_WEAPON_KINDS[0] ?? null;
+    static createReadyState() {
+      return {
+        runPhase: null,
+        runPhaseElapsed: 0,
+        routeChoicesSpawned: false,
+        selectedWeaponKind: null,
+      };
     }
 
-    static cycleStartingWeapon(kind, step) {
-      if (STARTING_WEAPON_KINDS.length <= 0) return null;
-
-      const current = RunRules.normalizeStartingWeapon(kind);
-      const currentIndex = Math.max(0, STARTING_WEAPON_KINDS.indexOf(current));
-      const direction = Number.isFinite(step) ? Math.trunc(step) : 0;
-      const nextIndex =
-        ((currentIndex + direction) % STARTING_WEAPON_KINDS.length + STARTING_WEAPON_KINDS.length) %
-        STARTING_WEAPON_KINDS.length;
-      return STARTING_WEAPON_KINDS[nextIndex];
+    static beginOpening(state) {
+      if (!state || typeof state !== "object") return false;
+      Object.assign(state, RunRules.createReadyState(), { runPhase: RUN_PHASES.baseLaunch });
+      return true;
     }
 
-    static weaponForAction(actionName, currentKind) {
-      const directIndex = RUN_RULES.startingWeapon.directActions[actionName];
-      if (Number.isInteger(directIndex)) return STARTING_WEAPON_KINDS[directIndex] ?? null;
+    static enterRouteChoice(state) {
+      if (state?.runPhase !== RUN_PHASES.baseLaunch) return false;
+      state.runPhase = RUN_PHASES.routeChoice;
+      state.runPhaseElapsed = 0;
+      return true;
+    }
 
-      const step = RUN_RULES.startingWeapon.cycleActions[actionName];
-      if (Number.isFinite(step)) return RunRules.cycleStartingWeapon(currentKind, step);
-      return null;
+    static lockRoute(state, kind) {
+      if (state?.runPhase !== RUN_PHASES.routeChoice || !ROUTE_WEAPON_KINDS.includes(kind)) return false;
+      state.selectedWeaponKind = kind;
+      state.runPhase = RUN_PHASES.combat;
+      state.runPhaseElapsed = 0;
+      return true;
+    }
+
+    static isOpening(state) {
+      return state?.runPhase === RUN_PHASES.baseLaunch || state?.runPhase === RUN_PHASES.routeChoice;
+    }
+
+    static isCombat(state) {
+      return state?.runPhase === RUN_PHASES.combat;
+    }
+
+    static routeKind(state) {
+      return ROUTE_WEAPON_KINDS.includes(state?.selectedWeaponKind) ? state.selectedWeaponKind : null;
     }
 
     static isAssisted(state) {

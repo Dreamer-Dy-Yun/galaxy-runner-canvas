@@ -2,8 +2,9 @@
 // Split from the original single-file prototype so each system can evolve independently.
 
 class CollectibleItem {
-  constructor(kind) {
+  constructor(kind, options = {}) {
     this.category = itemCategory(kind);
+    this.openingChoice = options.openingChoice === true;
     this.applyKind(kind);
     this.bouncePadding = ITEM_FIELD_CONFIG.bounds.padding + this.radius;
     this.x = randomRange(ITEM_FIELD_CONFIG.spawn.xPadding, PLAYFIELD.width - ITEM_FIELD_CONFIG.spawn.xPadding);
@@ -12,7 +13,7 @@ class CollectibleItem {
     this.vx = randomRange(ITEM_FIELD_CONFIG.velocity.xMin, ITEM_FIELD_CONFIG.velocity.xMax);
     this.pulse = randomRange(0, Math.PI * 2);
     this.age = 0;
-    this.morphTimer = this.nextMorphDelay();
+    this.morphTimer = this.openingChoice ? Infinity : this.nextMorphDelay();
   }
 
   applyKind(kind) {
@@ -23,10 +24,10 @@ class CollectibleItem {
     this.bouncePadding = ITEM_FIELD_CONFIG.bounds.padding + this.radius;
   }
 
-  static pickKind(player = null, category = null, excludeKind = null) {
-    let entries = CollectibleItem.availableDefinitions(player, category, excludeKind);
+  static pickKind(player = null, category = null, excludeKind = null, routeKind = null) {
+    let entries = CollectibleItem.availableDefinitions(player, category, excludeKind, routeKind);
     if (entries.length <= 0 && excludeKind) {
-      entries = CollectibleItem.availableDefinitions(player, category);
+      entries = CollectibleItem.availableDefinitions(player, category, null, routeKind);
     }
     if (entries.length <= 0) return excludeKind || "repair";
 
@@ -39,11 +40,12 @@ class CollectibleItem {
     return "repair";
   }
 
-  static availableDefinitions(player = null, category = null, excludeKind = null) {
+  static availableDefinitions(player = null, category = null, excludeKind = null, routeKind = null) {
     return Object.entries(ITEM_DEFINITIONS).filter(([kind, item]) => {
       if (item.spawnable === false || item.weight <= 0) return false;
       if (category && itemCategory(kind) !== category) return false;
       if (kind === excludeKind) return false;
+      if (itemCategory(kind) === "weapon" && routeKind && kind !== routeKind) return false;
       if (kind === "shield") return !player || player.maxShield < BALANCE.shieldMax;
       if (kind === "shieldDefense") {
         return !!player && player.maxShield >= BALANCE.shieldMax && player.shieldDefenseLevel < BALANCE.shieldDefenseMaxLevel;
@@ -59,17 +61,19 @@ class CollectibleItem {
   update(dt, game = null) {
     this.age += dt;
     this.pulse += dt * ITEM_FIELD_CONFIG.pulseSpeed;
-    this.updateMorph(dt, game?.player ?? null);
+    if (this.openingChoice) return;
+    this.updateMorph(dt, game);
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.bounceWithinField();
   }
 
-  updateMorph(dt, player = null) {
+  updateMorph(dt, game = null) {
     this.morphTimer -= dt;
     if (this.morphTimer > 0) return;
 
-    const nextKind = CollectibleItem.pickKind(player, this.category, this.kind);
+    const routeKind = RunRules.routeKind(game?.state);
+    const nextKind = CollectibleItem.pickKind(game?.player ?? null, this.category, this.kind, routeKind);
     this.applyKind(nextKind);
     this.morphTimer = this.nextMorphDelay();
   }
@@ -98,7 +102,7 @@ class CollectibleItem {
   }
 
   get expired() {
-    return this.age >= ITEM_FIELD_CONFIG.lifetime;
+    return !this.openingChoice && this.age >= ITEM_FIELD_CONFIG.lifetime;
   }
 
   get remainingLife() {
@@ -106,6 +110,7 @@ class CollectibleItem {
   }
 
   get blinkHidden() {
+    if (this.openingChoice) return false;
     if (this.remainingLife > ITEM_FIELD_CONFIG.blink.startRemaining) return false;
 
     const progress = 1 - this.remainingLife / ITEM_FIELD_CONFIG.blink.startRemaining;

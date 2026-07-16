@@ -2,7 +2,7 @@
 
 ## 역할
 
-`src/engine`은 Galaxy Runner에 종속되지 않는 2D Canvas 런타임 계약과 공통 실행 모듈을 두는 폴더다. 현재 runtime, scene, input, world, physics, asset, rendering, debug helper를 단계적으로 포함한다.
+`src/engine`은 Galaxy Runner에 종속되지 않는 2D Canvas 런타임 계약과 공통 실행 모듈을 두는 폴더다. 현재 runtime, scene, input, world, physics, animation, asset, rendering, debug helper를 포함한다.
 
 ## 폴더 책임
 
@@ -23,6 +23,7 @@
 | `SceneManager` | scene 등록, enter/update/draw/exit 순서 보장 | scene 내부 gameplay state 결정 |
 | `World` / `EntityStore` | entity group, stable iteration, remove cleanup | damage, score, drop, stage progression |
 | `Collision` | primitive 판정, layer/mask query, pair 후보 | hit 결과, 무기별 충돌 효과 |
+| `RigAnimationEngine` | immutable rig diff, phase, rigid pose, interruption, fallback frame | 기체/무기/level 의미, gameplay 수치 변경, asset 선택 |
 | `Render helpers` | sprite, atlas, primitive, debug bounds drawing | player final-form, enemy/boss/HUD 시각 정책 |
 | `Asset helpers` | manifest preload, load/error 상태, atlas frame 조회 | asset 목록 의미, 필수 asset fallback 정책 |
 | `Debug hooks` | frame/entity/input/collision/asset 관측 지점 | gameplay 규칙 변경 |
@@ -54,6 +55,14 @@ Collision helper는 후보와 교차 여부만 제공한다. 충돌 결과로 �
 Render helper는 Canvas API를 안전하게 쓰기 위한 공통 도구다. 어떤 이미지를 어떤 상태에서 그릴지는 게임 renderer 또는 scene이 결정한다.
 
 Asset helper는 preload와 조회 상태를 제공한다. 어떤 asset이 필수인지, 실패 시 fallback을 허용할지는 게임 manifest와 scene 정책이 결정한다.
+
+## Animation 계약
+
+`src/engine/animation`은 immutable rig snapshot의 구조 차이와 선언형 profile을 frozen frame으로 변환한다. engine은 opaque `assetKey`, part id, tags를 데이터로만 취급하며 게임별 종류나 강화 단계를 해석하지 않는다.
+
+`RigAnimationEngine`은 translate, rotate, opacity 기반 rigid pose와 assembly transition만 계산한다. 요청마다 callback을 받지 않고 생성 시 검증한 pure strategy만 실행한다. `to` snapshot은 완료 상태의 정본이고 `transitionParts`는 active frame에만 존재하므로, 단일 완성 이미지 crossfade와 임시 조립 파츠를 같은 일반 계약으로 표현할 수 있다.
+
+Canvas 출력은 `RigAnimationRenderer`, assetKey 선택과 gameplay snapshot 변환은 게임 adapter 책임이다. 상세 공개 계약과 확장 규칙은 `src/engine/animation/README.md`를 따른다.
 
 ## Asset, Render, Debug helper 계약
 

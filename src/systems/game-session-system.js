@@ -21,8 +21,6 @@ class GameSessionSystem {
       return true;
     }
 
-    if (GameSessionSystem.selectStartingWeapon(game, actionName)) return true;
-
     if (actionName === "info") {
       if (action?.source === "canvas" && action.sourceEvent) game.handleCanvasClick(action.sourceEvent);
       else GameSessionSystem.toggleInfo(game);
@@ -38,20 +36,9 @@ class GameSessionSystem {
       return;
     }
     if (game.state.mode === "ready") {
-      const startingWeaponKind = RunRules.normalizeStartingWeapon(game.state.startingWeaponKind);
-      if (!startingWeaponKind) return;
-      game.state.startingWeaponKind = startingWeaponKind;
-      game.player.equipWeapon(startingWeaponKind);
+      RunRules.beginOpening(game.state);
       game.state.mode = "running";
     }
-  }
-
-  static selectStartingWeapon(game, actionName) {
-    if (game.state?.mode !== "ready") return false;
-    const nextKind = RunRules.weaponForAction(actionName, game.state.startingWeaponKind);
-    if (!nextKind) return false;
-    game.state.startingWeaponKind = nextKind;
-    return true;
   }
 
   static continueRun(game) {
@@ -84,6 +71,7 @@ class GameSessionSystem {
       game.state.mode = "running";
       game.infoPanelOpen = false;
     }
+    game.player?.rigAnimationAdapter?.setPaused(game.state.mode === "paused");
   }
 
   static handleCanvasClick(game, event) {

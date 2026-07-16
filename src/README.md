@@ -21,7 +21,7 @@
 - `GalaxyRunnerDebug`: overlay의 표시 lifecycle을 다루는 console 진입점이다.
 - `GalaxyRunnerFrameProfiler`: profiler의 수집 lifecycle과 snapshot을 다루는 console 진입점이다.
 - `GalaxyRunnerAudio`: mute와 audio lifecycle을 수동 점검하는 진입점이다. gameplay 판정에는 접근하지 않는다.
-- `GalaxyRunnerStatus()`: 브라우저 smoke와 soak를 위한 read-only snapshot을 반환한다. run/loadout/Assist, 현재 feedback, input down 여부, entity counts, frame p95/max, audio mute, runtime/debug 상태를 immutable 값으로 제공하며 gameplay 제어 객체는 노출하지 않는다.
+- `GalaxyRunnerStatus()`: 브라우저 smoke와 soak를 위한 read-only snapshot을 반환한다. run/route/Assist, 현재 feedback, input down 여부, entity counts, frame p95/max, audio mute, runtime/debug 상태를 immutable 값으로 제공하며 gameplay 제어 객체는 노출하지 않는다.
 
 ## 경계
 

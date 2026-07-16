@@ -15,7 +15,7 @@ Play here:
 
 ## Features
 
-- Ready-screen loadout selection for four weapon ships: Rapid, Energy, Spread, Nova
+- Base-ship launch followed by an in-world Rapid, Energy, Spread, or Nova route choice
 - Weapon levels 1-10 with per-weapon core upgrades after max level
 - Special skills per weapon
 - Shield, armor, shield defense, drones, and overdrive items
@@ -27,13 +27,12 @@ Play here:
 
 | Key | Action |
 |---|---|
-| Arrow / WASD | Move / Select starting ship on ready screen |
-| 1-4 | Select Rapid / Energy / Spread / Nova on ready screen |
+| Arrow / WASD | Move; collide with one of four fixed route items during the opening |
 | Space | Fire / Start / Assist Continue |
 | X / Ctrl | Special skill |
 | P / Esc | Pause |
 | I | Toggle Game Info while paused |
-| R | Return to ready with the current starting-ship selection |
+| R | Return to ready and clear the selected route |
 
 The current product scope is desktop keyboard play. The page exposes Canvas fallback text, keyboard focus, an aria-live status path, and a persistent sound toggle; touch controls are not implemented.
 
@@ -88,7 +87,7 @@ corepack pnpm run test:soak
 
 - `test:run`은 source script syntax/local script reference와 Node contract tests를 검증한다.
 - `build`는 source를 다시 검증하고 Pages에 올릴 파일만 `dist`에 조립한 뒤 artifact도 검증한다.
-- `test:browser`는 이미 생성된 `dist`를 임시 localhost port에서 제공한다. Chromium으로 loadout → running → feedback → pause/info → restart-ready, 접근성 DOM, 입력 복구와 page/console/network 오류 부재를 debug off/on에서 검증한다.
+- `test:browser`는 이미 생성된 `dist`를 임시 localhost port에서 제공한다. Chromium으로 base launch → route choice → combat → feedback → pause/info → restart-ready, 접근성 DOM, 입력 복구와 page/console/network 오류 부재를 debug off/on에서 검증한다.
 - `test:soak`는 seeded 12초 세션에서 상태 값, frame 지표, entity high-water와 blur 입력 복구를 확인한다. `GALAXY_RUNNER_SOAK_MS`로 5~60초 사이를 지정할 수 있다.
 
 ## Deployment contract

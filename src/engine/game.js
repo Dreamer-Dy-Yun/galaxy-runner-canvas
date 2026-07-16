@@ -36,8 +36,7 @@ class Game {
   }
 
   reset() {
-    const startingWeaponKind = RunRules.normalizeStartingWeapon(this.state?.startingWeaponKind);
-    this.state = { ...GAME_CONFIG.initialState, startingWeaponKind };
+    this.state = { ...GAME_CONFIG.initialState, ...RunRules.createReadyState() };
 
     this.infoPanelOpen = false;
     this.feedback.clear();

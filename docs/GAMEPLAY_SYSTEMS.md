@@ -101,13 +101,17 @@ Date: 2026-05-10
 - Each core level gives that weapon 5% more damage.
 - Max core level is 10 per weapon.
 
-## Starting loadout
+## Opening route choice
 
-- The ready screen always has one selected starting weapon. Rapid is the default.
-- Left/Right or A/D cycles Rapid, Energy, Spread, and Nova. Number keys 1-4 select them directly.
-- Pressing Space equips only the selected weapon at level 1 and starts the run.
-- Restart preserves the current selection, resets run progression, and returns to ready instead of starting automatically.
-- Random weapon drops continue to switch and upgrade weapons after the run starts.
+- The ready screen does not choose or equip a weapon. Space starts the base ship with all weapon levels at 0.
+- The explicit run phase is `baseLaunch -> routeChoice -> combat`.
+- `baseLaunch` lasts 1 second. Combat time, distance, enemy spawn, and ordinary item spawn do not advance during the opening.
+- `routeChoice` creates exactly four fixed Rapid, Energy, Spread, and Nova items in a safe row. They do not move, morph, blink, or expire.
+- Collecting one choice stores `state.selectedWeaponKind`, removes every route-choice item, equips that approved final-form route, and enters `combat`.
+- Ordinary weapon candidates and weapon morphs are filtered at creation time to `selectedWeaponKind`; support and defense item categories keep their existing behavior.
+- Restart clears the route and returns to the base-ship ready state. Continue preserves the selected route and does not repeat the opening.
+- The rig boundary is `player.rigAnimationAdapter.handleProgressionResult(result, context)`. Route choice uses `reason: "route-choice"`; later same-route pickups use `reason: "upgrade"`. The immutable `rigChange.from/to` snapshot drives only the common animation engine, and animation failure is reported without rolling gameplay back.
+- Generated transition parts detach and reattach with rigid transforms. The stable target remains the selected route and level's existing approved final-form PNG.
 
 ## Weapon catalog
 
@@ -119,7 +123,7 @@ Date: 2026-05-10
 ## Runtime config
 
 - General runtime tuning is owned by `src/gameplay/game-config.js`.
-- Starting-loadout and Assist Continue policy are owned by `src/gameplay/run-rules.js`; player defense policy is owned by `src/gameplay/player-defense-rules.js`.
+- Opening phase, route-lock, and Assist Continue policy are owned by `src/gameplay/run-rules.js`; player defense policy is owned by `src/gameplay/player-defense-rules.js`.
 - Player defaults, input keys, game timers, spawn rules, enemy role stats, projectile defaults, HUD layout, background tuning, burst tuning, and drone progression remain in `game-config.js` instead of entity or system code.
 - Entity and system code should express behavior and state transitions, not raw tuning numbers.
 
@@ -142,6 +146,7 @@ Date: 2026-05-10
 - Blink speed increases as the remaining lifetime approaches zero.
 - While alive, items periodically reroll into another item of the same category at a slow readable pace.
 - Weapon items reroll only within the weapon list.
+- After route selection, weapon candidates and rerolls can resolve only to the selected route.
 - Defense items reroll only within the defense item list.
 - Support items reroll only within the support item list.
 - Current item categories are owned by `ITEM_CATEGORY_KINDS` in `src/gameplay/item-definitions.js`.
@@ -284,7 +289,7 @@ Date: 2026-05-10
 - Continue count is tracked on the current run and increments each time Continue is used.
 - A run with one or more Continues is an assisted run. HUD and game-over copy expose that status without storing a duplicate flag.
 - Score, kills, distance, and time are cumulative session values rather than an unassisted high-score claim.
-- Pressing R or the Restart button resets progression and returns to ready with the current starting weapon still selected.
+- Pressing R or the Restart button resets progression, clears the selected route, and returns to the base-ship ready state.
 
 ## Feedback, accessibility, and audio
 
@@ -362,7 +367,8 @@ Date: 2026-05-10
 
 ## Opening pacing and item drops
 
-- The opening spawn timer starts positive so the first enemy wave is delayed briefly instead of spawning immediately.
+- The opening is a spawn gate: the base ship is visible for 1 second, then four persistent route choices appear, and normal enemy/item spawning begins only after one route is selected.
+- The opening spawn timer starts positive so the first enemy wave is delayed briefly after combat begins instead of spawning immediately.
 - Base enemy spawn interval is longer during the opening, while danger scaling still makes later waves denser.
 - Enemy vertical speeds are reduced so enemies stay on screen longer and weapon identity is easier to read.
 - Random field item generation is less frequent.
