@@ -32,11 +32,6 @@ async function loadGameplay() {
 async function createPlayer() {
   const context = await loadGameplay();
   context.FinalShipArt = class FinalShipArt {};
-  context.PlayerRigArt = class PlayerRigArt {};
-  context.PlayerRigAnimationAdapter = class PlayerRigAnimationAdapter {
-    reset() {}
-    update() {}
-  };
   context.PlayerPartLayout = class PlayerPartLayout {
     constructor() { this.rigSize = 250; }
   };
@@ -151,12 +146,6 @@ test("pickup results expose healing, overflow score, and weapon progression sema
   assert.equal(equipped.outcome, "equipped");
   assert.equal(equipped.level, 1);
   assert.equal(player.activeWeaponKind(), "rapid");
-  assert.equal(Object.isFrozen(equipped.rigChange), true);
-  assert.equal(Object.isFrozen(equipped.rigChange.from), true);
-  assert.deepEqual(
-    JSON.parse(JSON.stringify(equipped.rigChange)),
-    { from: { kind: null, level: 0 }, to: { kind: "rapid", level: 1 } }
-  );
 
   let result = equipped;
   for (let index = 0; index < 10; index += 1) result = player.collect(item("rapid"), game);

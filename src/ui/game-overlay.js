@@ -21,9 +21,10 @@ class GameOverlay {
     ctx.fillText("GALAXY RUNNER", PLAYFIELD.width / 2, 122);
     ctx.font = "600 18px Segoe UI, Noto Sans KR, sans-serif";
     ctx.fillStyle = "rgba(239, 250, 255, 0.82)";
-    ctx.fillText("기본 기체로 출격한 뒤 진화 노선을 선택합니다", PLAYFIELD.width / 2, 166);
+    ctx.fillText("시작 함선을 선택하세요", PLAYFIELD.width / 2, 166);
+    LoadoutSelector.draw(ctx, game);
     ctx.fillStyle = "#8fe7ff";
-    ctx.fillText("Space: 출격", PLAYFIELD.width / 2, 232);
+    ctx.fillText("←/A · D/→ 또는 1~4 선택 · Space 시작", PLAYFIELD.width / 2, 326);
   }
 
   static drawGameOver(ctx, game) {
@@ -41,7 +42,7 @@ class GameOverlay {
     ctx.fillStyle = "#ffcf8f";
     ctx.fillText("Space: 강화와 진행을 보존하는 Assist Continue", PLAYFIELD.width / 2, PLAYFIELD.height / 2 + 20);
     ctx.fillStyle = "#8fe7ff";
-    ctx.fillText("R: 기본 기체 출격 준비로 돌아가기", PLAYFIELD.width / 2, PLAYFIELD.height / 2 + 58);
+    ctx.fillText("R: 시작 함선 선택으로 돌아가기", PLAYFIELD.width / 2, PLAYFIELD.height / 2 + 58);
   }
 
   static drawPaused(ctx, game) {

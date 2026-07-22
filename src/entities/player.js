@@ -20,10 +20,7 @@ class Player {
     );
     this.finalShips = new FinalShipArt();
     this.partLayout = new PlayerPartLayout(this.playerPartSheet);
-    this.rigArt = new PlayerRigArt();
-    this.rigAnimationAdapter = null;
     this.reset();
-    this.rigAnimationAdapter = new PlayerRigAnimationAdapter(this, this.rigArt);
   }
 
   reset() {
@@ -59,6 +56,7 @@ class Player {
     this.droneSlotsCache = [];
     this.droneLevel = 0;
     this.drones = 0;
+    this.lean = 0;
     this.thrust = 1;
     this.moveX = 0;
     this.moveY = 0;
@@ -67,7 +65,6 @@ class Player {
     this.wasSpecialDown = false;
     this.specialInputResetVersion = -1;
     this.updateWeaponFootprint();
-    this.rigAnimationAdapter?.reset();
   }
 
   syncVisualRigToScale(scale = 1) {
@@ -88,7 +85,6 @@ class Player {
     this.updateTimers(dt);
     this.move(dt, game.input);
     this.updateWeaponFootprint();
-    this.rigAnimationAdapter?.update(dt);
 
     SpecialSystem.update(this, dt, game);
     const specialDown = SpecialSystem.isSpecialDown(game.input);
@@ -140,6 +136,7 @@ class Player {
       this.y += (my / len) * moveSpeed * dt;
     }
 
+    const leanTarget = mx * PLAYER_CONFIG.movement.leanMax;
     const thrustTarget = clampNumber(
       PLAYER_CONFIG.movement.thrust.base +
         (my < 0 ? PLAYER_CONFIG.movement.thrust.upBoost : my > 0 ? PLAYER_CONFIG.movement.thrust.downPenalty : 0) +
@@ -148,6 +145,7 @@ class Player {
       PLAYER_CONFIG.movement.thrust.max
     );
     const motionEase = clampNumber(dt * PLAYER_CONFIG.movement.thrust.ease, 0, 1);
+    this.lean += (leanTarget - this.lean) * motionEase;
     this.thrust += (thrustTarget - this.thrust) * motionEase;
 
     this.x = clampNumber(
@@ -411,7 +409,6 @@ class Player {
     if (this.health <= 0) {
       this.health = 0;
       game.state.mode = "gameover";
-      this.rigAnimationAdapter?.settle();
     }
     const result = Object.freeze({
       outcome: "health",
@@ -475,7 +472,65 @@ class Player {
   }
 
   bankAmount() {
-    return clampNumber(this.moveX, -1, 1);
+    return clampNumber(this.lean / PLAYER_CONFIG.movement.leanMax, -1, 1);
+  }
+
+  applyBankProjection(ctx) {
+    const bank = this.bankAmount();
+    const amount = Math.abs(bank);
+    const xScale = 1 - amount * PLAYER_CONFIG.bank.xScalePerLean;
+    const yScale = 1 + amount * PLAYER_CONFIG.bank.yScalePerLean;
+    const xSkew = bank * PLAYER_CONFIG.bank.skewPerLean;
+    ctx.transform(xScale, 0, xSkew, yScale, bank * PLAYER_CONFIG.bank.xOffsetPerLean, 0);
+  }
+
+  hasPlayerPartSheet() {
+    return this.playerPartSheet.isReady();
+  }
+
+  drawPlayerShip(ctx, time) {
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.42)";
+    ctx.shadowBlur = 11;
+
+    const kind = this.activeWeaponKind();
+    const level = this.activeWeaponLevel();
+    if (!this.drawFinalWeaponShip(ctx, kind, level)) {
+      this.drawBaseShipLayer(ctx, time);
+    }
+
+    this.drawArmorOverlay(ctx);
+    ctx.restore();
+  }
+
+  drawFinalWeaponShip(ctx, kind, level) {
+    return this.finalShips.draw(ctx, kind, level, this.partLayout.rigSize);
+  }
+
+  drawBaseShipLayer(ctx, time) {
+    if (!this.hasPlayerPartSheet()) return false;
+
+    const slots = this.partLayout.shipSlots();
+    this.partLayout.draw(ctx, slots.wings, { alpha: 0.98 });
+    this.partLayout.draw(ctx, slots.engine, { alpha: 0.96 });
+    this.partLayout.draw(ctx, slots.fuselage);
+    this.partLayout.draw(ctx, slots.cockpit, {
+      alpha: 0.9 + Math.sin(time * 5) * 0.04,
+      shadowColor: "rgba(106, 239, 255, 0.5)",
+      shadowBlur: 8,
+    });
+    return true;
+  }
+
+  drawArmorOverlay(ctx) {
+    if (this.armorLevel <= 0 || !this.hasPlayerPartSheet()) return;
+
+    const level = clampNumber(this.armorLevel, 1, BALANCE.armorMaxLevel);
+    this.partLayout.draw(ctx, this.partLayout.armorSlot(), {
+      alpha: 0.46 + level * 0.08,
+      shadowColor: "rgba(216, 230, 240, 0.45)",
+      shadowBlur: 7,
+    });
   }
 
   hasThrusterSheet() {
@@ -661,7 +716,7 @@ class Player {
   }
 
   drawDrones(ctx, time) {
-    if (!this.playerPartSheet.isReady()) return;
+    if (!this.hasPlayerPartSheet()) return;
 
     for (const [index, slot] of this.droneSlots(time).entries()) {
       const upgrade = this.droneUpgradeCount(index);

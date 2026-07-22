@@ -24,8 +24,6 @@ export const CLASSIC_SCRIPT_MANIFEST = Object.freeze([
   entry("src/gameplay/item-definitions.js", ["src/gameplay/weapon-definitions.js"]),
   entry("src/gameplay/game-config.js", ["src/core/constants.js"]),
   entry("src/gameplay/game-info.js", ["src/gameplay/item-definitions.js"]),
-  entry("src/gameplay/player-rig-catalog.js"),
-  entry("src/gameplay/player-animation-profiles.js"),
   entry("src/systems/game-feedback-system.js"),
   entry("src/ui/game-feedback-messages.js"),
   entry("src/ui/game-feedback.js", ["src/ui/game-feedback-messages.js"]),
@@ -37,22 +35,6 @@ export const CLASSIC_SCRIPT_MANIFEST = Object.freeze([
   entry("src/core/asset-loader.js"),
   entry("src/core/sprite-atlas.js", ["src/core/asset-loader.js"]),
   entry("src/core/collision.js"),
-  entry("src/engine/animation/animation-timeline.js"),
-  entry("src/engine/animation/pose-channel-state.js", [
-    "src/engine/animation/animation-timeline.js",
-  ]),
-  entry("src/engine/animation/part-assembly-diff.js"),
-  entry("src/engine/animation/transition-profile.js", [
-    "src/engine/animation/animation-timeline.js",
-    "src/engine/animation/part-assembly-diff.js",
-  ]),
-  entry("src/engine/animation/rig-animation-engine.js", [
-    "src/engine/animation/animation-timeline.js",
-    "src/engine/animation/pose-channel-state.js",
-    "src/engine/animation/part-assembly-diff.js",
-    "src/engine/animation/transition-profile.js",
-  ]),
-  entry("src/engine/rendering/rig-animation-renderer.js"),
   entry("src/systems/weapon-system.js", [
     "src/gameplay/weapon-definitions.js",
     "src/gameplay/game-config.js",
@@ -68,11 +50,6 @@ export const CLASSIC_SCRIPT_MANIFEST = Object.freeze([
     "src/systems/weapon-system.js",
     "src/systems/drone-system.js",
   ]),
-  entry("src/systems/player-rig-animation-adapter.js", [
-    "src/engine/animation/rig-animation-engine.js",
-    "src/gameplay/player-rig-catalog.js",
-    "src/gameplay/player-animation-profiles.js",
-  ]),
   entry("src/systems/boss-ai.js", ["src/gameplay/game-config.js"]),
   entry("src/systems/game-session-system.js", [
     "src/gameplay/game-config.js",
@@ -84,17 +61,9 @@ export const CLASSIC_SCRIPT_MANIFEST = Object.freeze([
   entry("src/systems/collectible-lifecycle-system.js", ["src/gameplay/item-definitions.js"]),
   entry("src/systems/effect-lifecycle-system.js"),
   entry("src/systems/enemy-lifecycle-system.js", ["src/core/collision.js"]),
+  entry("src/renderers/player-renderer.js", ["src/gameplay/game-config.js"]),
   entry("src/renderers/player-part-layout.js", ["src/core/sprite-atlas.js"]),
   entry("src/renderers/final-ship-art.js", ["src/core/asset-loader.js"]),
-  entry("src/renderers/player-rig-art.js", [
-    "src/core/asset-loader.js",
-    "src/engine/rendering/rig-animation-renderer.js",
-    "src/gameplay/player-rig-catalog.js",
-  ]),
-  entry("src/renderers/player-renderer.js", [
-    "src/gameplay/game-config.js",
-    "src/renderers/player-rig-art.js",
-  ]),
   entry("src/renderers/item-icon-aux-renderer.js"),
   entry("src/renderers/item-icon-renderer.js", ["src/renderers/item-icon-aux-renderer.js"]),
   entry("src/engine/input.js", ["src/gameplay/game-config.js"]),
@@ -119,11 +88,16 @@ export const CLASSIC_SCRIPT_MANIFEST = Object.freeze([
     "src/renderers/player-renderer.js",
     "src/renderers/player-part-layout.js",
     "src/renderers/final-ship-art.js",
-    "src/renderers/player-rig-art.js",
-    "src/systems/player-rig-animation-adapter.js",
   ]),
   entry("src/ui/game-hud.js", ["src/entities/player.js"]),
-  entry("src/ui/game-overlay.js", ["src/gameplay/game-info.js"]),
+  entry("src/ui/loadout-selector.js", [
+    "src/gameplay/run-rules.js",
+    "src/gameplay/weapon-definitions.js",
+  ]),
+  entry("src/ui/game-overlay.js", [
+    "src/gameplay/game-info.js",
+    "src/ui/loadout-selector.js",
+  ]),
   entry("src/renderers/game-scene-renderer.js", [
     "src/ui/game-hud.js",
     "src/ui/game-overlay.js",

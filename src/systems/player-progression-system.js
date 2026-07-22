@@ -74,7 +74,6 @@
     static equipWeapon(player, kind) {
       if (!isWeaponKind(kind)) return null;
 
-      const rigFrom = PlayerProgressionSystem.rigState(player);
       const activeKind = player.activeWeaponKind();
       const maxLevel = WeaponCatalog.maxLevel(kind);
       const ownedLevel = Math.max(player.weaponHighestLevel(kind), player.weaponLevel(kind));
@@ -101,18 +100,7 @@
           : ownedLevel > 0
             ? "level"
             : "equipped";
-      const rigTo = PlayerProgressionSystem.rigState(player);
-      return PlayerProgressionSystem.result(kind, {
-        outcome,
-        level: nextLevel,
-        coreLevel,
-        rigChange: Object.freeze({ from: rigFrom, to: rigTo }),
-      });
-    }
-
-    static rigState(player) {
-      const kind = player.activeWeaponKind();
-      return Object.freeze({ kind, level: kind ? player.weaponLevel(kind) : 0 });
+      return PlayerProgressionSystem.result(kind, { outcome, level: nextLevel, coreLevel });
     }
 
     static result(kind, details) {

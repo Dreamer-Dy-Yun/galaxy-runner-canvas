@@ -6,11 +6,6 @@ class GameLoopSystem {
     if (game.state.mode !== "running") return;
 
     game.feedback?.update(dt);
-    if (RunRules.isOpening(game.state)) {
-      GameLoopSystem.updateOpening(game, dt);
-      return;
-    }
-
     game.state.time += dt;
     game.state.distance += dt * GAME_CONFIG.scoring.distancePerSecond;
     game.state.danger = Math.min(GAME_CONFIG.danger.max, game.state.time / GAME_CONFIG.danger.secondsPerDanger);
@@ -53,24 +48,6 @@ class GameLoopSystem {
     game.updateProjectiles(dt, collisionContext);
     game.updateItems(dt);
     game.updateEnemies(dt, collisionContext);
-    game.updateExplosions(dt);
-    game.updateParticles(dt);
-  }
-
-  static updateOpening(game, dt) {
-    game.state.runPhaseElapsed += dt;
-    if (
-      game.state.runPhase === RUN_RULES.opening.phases.baseLaunch &&
-      game.state.runPhaseElapsed >= RUN_RULES.opening.baseLaunchSeconds
-    ) {
-      RunRules.enterRouteChoice(game.state);
-    }
-    if (game.state.runPhase === RUN_RULES.opening.phases.routeChoice) {
-      CollectibleLifecycleSystem.spawnRouteChoices(game);
-    }
-
-    game.player.update(dt, game);
-    game.updateItems(dt);
     game.updateExplosions(dt);
     game.updateParticles(dt);
   }

@@ -4,10 +4,10 @@
 
 - 작성일: 2026-05-18
 - 최근 계약 갱신: 2026-07-16
-- 기준 작업: `mulAg/md/plan/PLAN-2026-07-16-opening-player-animation-redesign.md`
-- 기준 TODO: `TODO-RIG-ANIMATION-ENGINE-001`, `TODO-PLAYER-RIG-ADAPTER-003`, `TODO-OPENING-ROUTE-CHOICE-004`
-- 범위: 엔진 계약과 책임 경계, 공통 rig transition/pose lifecycle, 게임 opening adapter 경계 문서화
-- 제외 범위: 전체 `EngineRuntime` 재구축, 무기/특수기 밸런스 변경, 승인된 final-form 기체 디자인 교체
+- 기준 작업: `mulAg/md/plan/active/PLAN-2026-07-15-runtime-hardening.md`
+- 기준 TODO: `mulAg/md/todo/TODO-RUNTIME-HARDEN-002.md`
+- 범위: 엔진 계약과 책임 경계 문서화
+- 제외 범위: 런타임 코드 분리, 자산 삭제, startup picker 제거, 무기/특수기 밸런스 변경
 
 ## 목적
 
@@ -23,7 +23,6 @@ EngineRuntime
   -> SceneManager
   -> World / EntityStore
   -> Collision / Render / Asset helpers
-  -> RigAnimationEngine / RigAnimationRenderer
 
 GalaxyRunnerScene
   -> Galaxy Runner state
@@ -42,7 +41,6 @@ GalaxyRunnerScene
 | Input | raw keyboard/pointer/gamepad 상태 수집, action mapping 조회 | `firePrimary`, `useSpecial`, `moveLeft` 같은 action 의미 정의 |
 | World | entity group 보관, update/draw 순서, 제거 예약과 cleanup | 어떤 entity를 언제 spawn/remove할지, score와 drop 규칙 |
 | Collision | primitive, broad query, layer/mask 필터, pair 후보 제공 | damage, knockback, item 획득, 무기별 특수 충돌 효과 |
-| Animation | rig diff, phase timeline, rigid pose, interruption, frozen frame | 기체 종류, 강화 단계, gameplay 상태, asset manifest 의미 |
 | Render | canvas drawing helper, sprite/atlas draw helper, debug primitive | player final-form 정책, 적/보스/HUD의 Galaxy Runner 시각 규칙 |
 | Asset | preload, load/error 상태, atlas frame 조회 | 어떤 asset을 필수로 볼지, fallback 허용 여부, asset manifest 구성 |
 | Debug | frame metric, lifecycle hook, query trace hook | Galaxy Runner 규칙을 설명하는 debug label과 QA 시나리오 |
@@ -136,16 +134,6 @@ Entity group 이름은 엔진이 의미를 해석하지 않는 문자열로 둔�
 Galaxy Runner render 책임은 player final-form 선택, 등록 파츠 조합, enemy/boss 시각 규칙, projectile 스타일, HUD 문구, overlay, game info panel이다.
 
 Draw 단계에서 simulation state를 변경하지 않는 것을 기본 원칙으로 한다. 단, 렌더 전용 cache나 atlas frame lookup cache처럼 화면 출력만 위한 memoization은 허용할 수 있으며, 허용한 경우 해당 모듈 README에 부작용을 적는다.
-
-## Rig animation 경계
-
-`RigAnimationEngine`은 immutable `from`/`to` rig snapshot과 선언형 profile을 받아 part diff, phase timeline, pose channel, interruption, reduced motion, 허용된 fallback을 계산한다. pose channel은 목표값과 선언된 진입·복귀·반전 응답 시간을 받아 엔진 내부에서 보간한다. 출력은 read-only frame이며 gameplay state와 Canvas context에 접근하지 않는다.
-
-완료 상태의 정본은 항상 request의 `to` snapshot이다. 하나의 등록 이미지 part를 유지하거나 교체 crossfade할 수 있고, optional `transitionParts`는 active frame에만 포함한 뒤 target settle에서 제거한다. 이 계약으로 승인된 완성 이미지를 settled 정본으로 유지하면서도 조립 중 임시 파츠를 표시할 수 있다.
-
-내장 strategy는 opaque part tags와 profile parameter만 해석한다. 엔진은 player, weapon, level 같은 게임 의미를 조건문으로 사용하지 않는다. 게임 adapter는 gameplay 상태를 rig와 profile id로 바꾸고, 게임 renderer는 assetKey를 image handle로 해석한다. generic renderer는 translate, rotate, opacity만 적용하며 non-uniform scale과 skew pose를 만들지 않는다.
-
-invalid snapshot/profile/strategy/request는 상태 변경 전에 실패한다. runtime asset 누락과 strategy 실행 오류처럼 profile에 선언된 장애만 `degraded` frame과 오류 원인을 남기고 source 유지 또는 target settle로 진행한다. 상세 계약은 `src/engine/animation/README.md`를 따른다.
 
 ## Asset 경계
 

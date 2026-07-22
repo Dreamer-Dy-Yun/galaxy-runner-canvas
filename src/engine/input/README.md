@@ -6,7 +6,7 @@
 
 ## 파일 책임
 
-- `action-map.js`: 이동·발사·pause, `X/Ctrl` special, `I` info action과 raw key code의 연결. 숫자 1~4 ready 선택 action은 제거됐다.
+- `action-map.js`: 이동·발사·pause, `X/Ctrl` special, `I` info, ready 숫자 1~4 선택 action과 raw key code의 연결.
 - `input-state.js`: 눌림/해제/axis 상태를 action 기준으로 조회하는 상태 저장소.
 - `../input.js`: DOM listener lifecycle, action dispatch, Canvas focus, blur/visibility reset.
 
